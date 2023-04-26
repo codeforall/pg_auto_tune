@@ -25,18 +25,21 @@
 #include <fcntl.h>
 
 #include "pg_auto_tune.h"
+#include "pg_config_map.h"
 
 #define MAX_FILE_PATH_SIZE 1024
 
 /* globalse */
 int verbose_output = 0;
 char *data_dir = NULL;
+char *map_file = NULL;
 const char *progname = "pg_auto_tune";
 const char *description = "Auto tuning for PostgreSQL by Percona";
 const char *package = "Percona";
 const char *version = "1.0";
 const char *speed_test_file = "base/1/1255";
 const char *output_conf_file = "per_postgresql.conf";
+const char *map_file_name = "ConfigParams.map";
 
 static long long get_ram_size(void);
 static int get_CPU_count(void);
@@ -49,7 +52,10 @@ int main(int argc, char **argv)
     int ch;
     int optindex;
     char test_file_path[MAX_FILE_PATH_SIZE];
-    const char *allowed_options = "h:n:d:w:D:vV";
+    char pgconf_file_path[MAX_FILE_PATH_SIZE];
+    const char *allowed_options = "h:n:d:w:D:m:vV";
+    PGConfig *pg_config;
+    PGConfigMap config_map;
 
     SystemInfo system_info = {
         .total_ram = -1,
@@ -68,6 +74,7 @@ int main(int argc, char **argv)
         {"disk-type", required_argument, NULL, 'd'},
         {"workload-type", required_argument, NULL, 'w'},
         {"data-dir", required_argument, NULL, 'D'},
+        {"map-file", required_argument, NULL, 'm'},
         {NULL, 0, NULL, 0}};
 
     if (argc > 1)
@@ -146,6 +153,10 @@ int main(int argc, char **argv)
             verbose_output = 1;
             break;
 
+        case 'm':
+            map_file = strdup(optarg);
+            break;
+
         case 'D':
             data_dir = strdup(optarg);
             break;
@@ -191,6 +202,21 @@ int main(int argc, char **argv)
 
     snprintf(test_file_path, MAX_FILE_PATH_SIZE, "%s/%s", data_dir, speed_test_file);
     system_info.disk_speed = get_disk_speed(test_file_path);
+
+    snprintf(pgconf_file_path, MAX_FILE_PATH_SIZE, "%s/%s", data_dir, "postgresql.conf");
+
+    /* Load configuration parameters from postgresql.conf */
+    pg_config = PGConfig_parse(pgconf_file_path);
+
+    /* Load the map file */
+    load_config_map(&config_map, map_file?map_file:map_file_name);
+    if (verbose_output)
+        print_config_map(&config_map);
+
+    load_pg_config_in_map(&config_map, pg_config);
+    process_config_map(&config_map, &system_info);
+
+    print_config_map(&config_map);
 
     /* Enough with gathering info. create a meaningfull config */
     create_postgresql_conf(data_dir, &system_info);
@@ -300,6 +326,7 @@ usage(void)
     fprintf(stderr, "  -n, --disk-type=TYPE        TYPE can be \"magnetic\", \"ssd\", or \"network\"\n");
     fprintf(stderr, "  -n, --worklload-type=TYPE   TYPE can be \"olap\", \"oltp\", or \"mixed\"\n");
 
+    fprintf(stderr, "  -m, --file=file-path        path of config map file\n");
     fprintf(stderr, "  -D, --data-dir=DIR          location of the PostgreSQL data directory\n");
 
     fprintf(stderr, "  -v, --verbose               output verbose messages\n");

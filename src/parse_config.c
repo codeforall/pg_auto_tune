@@ -332,3 +332,19 @@ static bool CH_is_underscore(char c)
 
     return false;
 }
+
+PGConfigKeyVal*
+get_config_for_param(PGConfig *config, char *param_name)
+{
+    PGConfigKeyVal* val;
+    if (!config || !param_name)
+        return NULL;
+        val = config->list;
+    while (val)
+    {
+        if (val->key && !strcasecmp(val->key,param_name))
+            return val;
+        val = val->next;
+    }
+    return NULL;
+}

@@ -1,0 +1,22 @@
+# File format
+# --------
+# each line contains exactly one parameter defination with four fields
+# each field is mendatory and needs to be in exact same order
+# parameter_name    RESOURCE    FORMULA     VALUE
+# ------------------------------------------------
+#
+# Allowed values for RESOUECE
+#   MEMORY
+#   CPU
+#   DISK
+#   WORKLOAD
+#   NODE_TYPE
+#   HOST_TYPE
+#
+# Allowed values for FORMULA
+#   PERCENTAGE
+#   
+# ------------------------------------------------
+#
+shared_buffers  memory  percent 40
+

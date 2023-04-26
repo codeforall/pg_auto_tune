@@ -83,9 +83,68 @@ typedef struct pg_config
 
 } PGConfig;
 
+
+typedef enum RESOURCES
+{
+    RESOURCE_MEMORY,
+    RESOURCE_CPU,
+    RESOURCE_DISK,
+    RESOURCE_WORKLOAD,
+    RESOURCE_NODE_TYPE,
+    RESOURCE_HOST_TYPE,
+    INVALID_RESOURCE
+} RESOURCES;
+
+typedef enum FORMULAS
+{
+    PERCENTAGE,
+    SCRIPT,
+    INVALID_FORMULA
+}FORMULAS;
+
+typedef enum ENTRY_STATUS
+{
+    ENTRY_EMPTY = 0,
+    ENTRY_LOADED,
+    ENTRY_PROCESSED_SUCCESS,
+    ENTRY_PROCESSED_ERROR
+}ENTRY_STATUS;
+
+typedef struct pg_config_map_entry PGConfigMapEntry;
+
+struct pg_config_map_entry
+{
+    char *param;
+    RESOURCES   resource;
+    FORMULAS formula;
+    long value;
+    ENTRY_STATUS    status;
+
+    /* These fields are used by processor */
+    
+    long optimised_value;
+    char *message;
+    PGConfigKeyVal  *conf_ref;
+
+    /* Next item reference */
+    PGConfigMapEntry *next;
+};
+
+typedef struct pg_config_map
+{
+    int num_entries;
+    PGConfigMapEntry *list;
+
+} PGConfigMap;
+
 #define MAX_CONFIG_CHAR_VAL 1024
 
 PGConfig *PGConfig_parse(char *path);
 void PGConfig_destroy(PGConfig *config);
+PGConfigKeyVal* get_config_for_param(PGConfig *config, char *param_name);
+
+/* located in pg_config_processor.c */
+void load_pg_config_in_map(PGConfigMap* config_map, PGConfig *pg_config);
+void process_config_map(PGConfigMap* config_map, SystemInfo *system_info);
 
 #endif  // __PG_AUTO_TUNE_H__
