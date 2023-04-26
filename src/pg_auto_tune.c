@@ -324,7 +324,7 @@ usage(void)
     fprintf(stderr, "  -h, --host-type=TYPE        TYPE can be \"pod\", \"standard\", or \"cloud\"\n");
     fprintf(stderr, "  -n, --node-type=TYPE        TYPE can be \"primary\", or \"standby\"\n");
     fprintf(stderr, "  -d, --disk-type=TYPE        TYPE can be \"magnetic\", \"ssd\", or \"network\"\n");
-    fprintf(stderr, "  -n, --worklload-type=TYPE   TYPE can be \"olap\", \"oltp\", or \"mixed\"\n");
+    fprintf(stderr, "  -w, --workload-type=TYPE   TYPE can be \"olap\", \"oltp\", or \"mixed\"\n");
 
     fprintf(stderr, "  -m, --file=file-path        path of config map file\n");
     fprintf(stderr, "  -D, --data-dir=DIR          location of the PostgreSQL data directory\n");
