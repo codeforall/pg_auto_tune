@@ -2,7 +2,7 @@
 # --------
 # each line contains exactly one parameter defination with four fields
 # each field is mendatory and needs to be in exact same order
-# parameter_name    RESOURCE    FORMULA     VALUE
+# parameter_name    RESOURCE    FORMULA     OLTP_VALUE  OLAP_VALUE  MIXED
 # ------------------------------------------------
 #
 # Allowed values for RESOUECE
@@ -18,5 +18,6 @@
 #   
 # ------------------------------------------------
 #
-shared_buffers  memory  percent 40
+
+shared_buffers  memory  percentage 40 60  70
 
