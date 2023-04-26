@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         case 'D':
             data_dir = strdup(optarg);
             break;
-        
+
         case '?':
         default:
 
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
     pg_config = PGConfig_parse(pgconf_file_path);
 
     /* Load the map file */
-    load_config_map(&config_map, map_file?map_file:map_file_name);
+    load_config_map(&config_map, map_file ? map_file : map_file_name);
     if (verbose_output)
         print_config_map(&config_map);
 
@@ -323,7 +323,7 @@ usage(void)
      */
     fprintf(stderr, "  -h, --host-type=TYPE        TYPE can be \"pod\", \"standard\", or \"cloud\"\n");
     fprintf(stderr, "  -n, --node-type=TYPE        TYPE can be \"primary\", or \"standby\"\n");
-    fprintf(stderr, "  -n, --disk-type=TYPE        TYPE can be \"magnetic\", \"ssd\", or \"network\"\n");
+    fprintf(stderr, "  -d, --disk-type=TYPE        TYPE can be \"magnetic\", \"ssd\", or \"network\"\n");
     fprintf(stderr, "  -n, --worklload-type=TYPE   TYPE can be \"olap\", \"oltp\", or \"mixed\"\n");
 
     fprintf(stderr, "  -m, --file=file-path        path of config map file\n");
