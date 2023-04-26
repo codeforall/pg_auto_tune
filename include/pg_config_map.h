@@ -27,6 +27,9 @@
 
 int load_config_map(PGConfigMap* config, char *map_file);
 void free_config_map(PGConfigMap* config);
+char* get_resource_name(RESOURCES res);
+char* get_formula_name(FORMULAS formula);
+
 /* DEBUG functions */
 void print_config_map(PGConfigMap* config);
 void print_config_map_entry(PGConfigMapEntry *entry);

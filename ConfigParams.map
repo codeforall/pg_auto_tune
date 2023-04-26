@@ -2,8 +2,8 @@
 # --------
 # each line contains exactly one parameter defination with four fields
 # each field is mendatory and needs to be in exact same order
-# parameter_name    RESOURCE    FORMULA     OLTP_VALUE  OLAP_VALUE  MIXED
-# ------------------------------------------------
+# parameter_name    RESOURCE    FORMULA     OLTP_VALUE  OLAP_VALUE  MIXED_VALUE
+# ---------------------------------------------------------------------------
 #
 # Allowed values for RESOUECE
 #   MEMORY
@@ -19,5 +19,10 @@
 # ------------------------------------------------
 #
 
-shared_buffers  memory  percentage 40 60  70
+shared_buffers          memory  percentage 40 60  70
+work_mem                memory  percentage 10 20  10
+maintenance_work_mem    memory  percentage 5 10  20
+max_stack_depth         memory  percentage 1 1  1
 
+max_worker_processes    cpu     percentage  100 100 100
+max_parallel_workers_per_gather cpu percentage  20 20 20

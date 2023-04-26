@@ -9,8 +9,6 @@
 static char *get_next_token(char *buf, char *token, int max_token_len, int* token_len);
 static RESOURCES identify_resource(char* token);
 static FORMULAS identify_formula(char* token);
-static char* get_resource_name(RESOURCES res);
-static char* get_formula_name(FORMULAS formula);
 
 int
 load_config_map(PGConfigMap* config, char *map_file)
@@ -70,7 +68,7 @@ load_config_map(PGConfigMap* config, char *map_file)
         }
         entry->next = NULL;
 
-        while (step < 4)
+        while (step < 6)
         {
             lineptr = get_next_token(lineptr, token, MAX_TOKEN_LEN, &token_len);
             if (!token_len)
@@ -80,19 +78,30 @@ load_config_map(PGConfigMap* config, char *map_file)
                 case 0: /* param name */
                     entry->param = strdup(token);
                 break;
-                case 1:
+
+                case 1:/* resource type */
                     entry->resource = identify_resource(token);
                 break;
-                case 2:
+
+                case 2:/* formula */
                     entry->formula = identify_formula(token);
                 break;
-                case 3:
-                    entry->value = atof(token);
+
+                case 3:/* OLTP */
+                    entry->oltp_value = atof(token);
+                break;
+
+                case 4:/* OLAP */
+                    entry->olap_value = atof(token);
+                break;
+
+                case 5:/* mixed */
+                    entry->mixed_value = atof(token);
                 break;
             }
             step++;
         }
-        if (step == 4)
+        if (step == 6)
         {
             /* add it to list */
             if (config->list != NULL)
@@ -144,7 +153,7 @@ identify_formula(char* token)
     return INVALID_FORMULA;
 }
 
-static char*
+char*
 get_resource_name(RESOURCES res)
 {
     switch (res)
@@ -173,7 +182,7 @@ get_resource_name(RESOURCES res)
     }
 }
 
-static char*
+char*
 get_formula_name(FORMULAS formula)
 {
     switch (formula)
@@ -261,7 +270,7 @@ print_config_map_entry(PGConfigMapEntry *entry)
     printf("%s: ",entry->param?entry->param:"NULL");
     printf("%s: ",get_resource_name(entry->resource));
     printf("%s: ",get_formula_name(entry->formula));
-    printf("%ld\n",entry->value);
+    printf("OLTP:%ld OLAP:%ld MIXED:%ld\n",entry->oltp_value,entry->olap_value,entry->mixed_value);
 
     if (entry->status == ENTRY_PROCESSED_SUCCESS)
         printf("\t optimised_value=%ld",entry->optimised_value);
@@ -269,6 +278,7 @@ print_config_map_entry(PGConfigMapEntry *entry)
         printf("\t *processing_error*");
     if (entry->conf_ref)
         printf("\t pg_conf_value:%s",entry->conf_ref->value?entry->conf_ref->value:"NIL");
+    printf("\n");
 }
 
 void

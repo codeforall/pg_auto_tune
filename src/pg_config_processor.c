@@ -68,21 +68,37 @@ process_config_map(PGConfigMap* config_map, SystemInfo *system_info)
 static int
 percentage_processor(PGConfigMapEntry *map_entry, SystemInfo *system_info)
 {
+    long factor_value;
     if(!map_entry)
         return -1;
+
+    if (system_info->workload_type == OLAP)
+        factor_value = map_entry->olap_value;
+    else if (system_info->workload_type == OLTP)
+        factor_value = map_entry->oltp_value;
+    else
+        factor_value = map_entry->mixed_value;
+
     if (map_entry->resource == RESOURCE_MEMORY)
     {
-        /* TODO: its just a wild guess */
-        map_entry->optimised_value = (system_info->total_ram * map_entry->value)/100;
+        map_entry->optimised_value = (system_info->total_ram * factor_value)/100;
         map_entry->status = ENTRY_PROCESSED_SUCCESS;
         return 0;
     }
-    if (map_entry->resource == RESOURCE_CPU)
+    else if (map_entry->resource == RESOURCE_CPU)
     {
-        /* TODO: its just a wild guess */
-        map_entry->optimised_value = (system_info->cpu_count * map_entry->value)/100;
+        map_entry->optimised_value = (system_info->cpu_count * factor_value)/100;
         map_entry->status = ENTRY_PROCESSED_SUCCESS;
         return 0;
     }
+    else
+    {
+        char* message = malloc(MAX_MESSAGE_LEN);
+        snprintf(message,MAX_MESSAGE_LEN, "Invalid Resource type: %s for parameter: %s",
+                 get_resource_name(map_entry->resource),map_entry->param);
+        map_entry->message = message;
+        map_entry->status = ENTRY_PROCESSED_ERROR;
+    }
+
     return -2;
 }

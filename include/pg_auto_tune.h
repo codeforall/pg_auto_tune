@@ -18,6 +18,8 @@
 #ifndef __PG_AUTO_TUNE_H__
 #define __PG_AUTO_TUNE_H__
 
+#define MAX_MESSAGE_LEN 256
+
 typedef enum WORKLOAD_TYPE
 {
     OLTP,
@@ -117,7 +119,9 @@ struct pg_config_map_entry
     char *param;
     RESOURCES   resource;
     FORMULAS formula;
-    long value;
+    long    oltp_value;
+    long    olap_value;
+    long    mixed_value;
     ENTRY_STATUS    status;
 
     /* These fields are used by processor */
