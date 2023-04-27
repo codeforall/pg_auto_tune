@@ -17,9 +17,9 @@
             "parameter"     : "work_mem",
             "resource"      : "Memory",
             "Formula"       : "Percentage",
-            "OLAP_Factor"   : 0.02,
-            "OLTP_Factor"   : 0.01,
-            "MIXED_Factor"  : 0.01
+            "OLAP_Factor"   : 0.04,
+            "OLTP_Factor"   : 0.02,
+            "MIXED_Factor"  : 0.02
         },
         {
             "parameter"     : "max_worker_processes",
