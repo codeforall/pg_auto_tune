@@ -33,7 +33,7 @@ load_pg_config_in_map(PGConfigMap* config_map, PGConfig *pg_config)
     map_entry = config_map->list;
     while(map_entry)
     {
-        map_entry->conf_ref = get_config_for_param(pg_config,map_entry->param);
+        map_entry->conf_ref = PGConfig_get_param_by_name(pg_config,map_entry->param);
         map_entry = map_entry->next;
     }
 }
