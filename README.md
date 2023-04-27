@@ -2,10 +2,8 @@
 Utility to auto tune the PostgreSQL configuration parameters
 
 # Build
-pg_auto_tune is written in C and contains only a single source file.
-So you can use
 ```
-$ make pg_auto_tune
+$ make
 ```
 command to build it
 
