@@ -165,7 +165,7 @@ get_workload_type(WORKLOAD_TYPE wrk)
         return "OLTP";
         break;
     case OLAP:
-        return "OLTP";
+        return "OLAP";
         break;
     case MIXED:
         return "MIXED";
