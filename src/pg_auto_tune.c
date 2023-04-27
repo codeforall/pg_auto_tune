@@ -31,6 +31,7 @@
 
 /* globalse */
 int verbose_output = 0;
+bool force_invalid_profile = false;
 char *data_dir = NULL;
 char *map_file = NULL;
 char *output_file_path = NULL;
@@ -47,6 +48,7 @@ static long long get_ram_size(void);
 static int get_CPU_count(void);
 static double get_disk_speed(const char *filePath);
 static void usage(void);
+static void validate_map_profile(PGMapProfileDetails* profile, SystemInfo *system_info, bool force);
 
 int main(int argc, char **argv)
 {
@@ -57,6 +59,7 @@ int main(int argc, char **argv)
     const char *allowed_options = "h:n:d:w:D:m:o:vV";
     PGConfig *pg_config;
     PGConfigMap config_map;
+    PGMapProfileDetails map_profile;
 
     SystemInfo system_info = {
         .total_ram = -1,
@@ -69,6 +72,7 @@ int main(int argc, char **argv)
     static struct option long_options[] = {
         {"help", no_argument, NULL, '?'},
         {"version", no_argument, NULL, 'V'},
+        {"force-profile", no_argument, NULL, 'F'},
         {"verbose", no_argument, NULL, 'v'},
         {"host-type", required_argument, NULL, 'h'},
         {"node-type", required_argument, NULL, 'n'},
@@ -167,6 +171,9 @@ int main(int argc, char **argv)
             data_dir = strdup(optarg);
             break;
 
+        case 'F':
+            force_invalid_profile = true;
+            break;
         case '?':
         default:
 
@@ -215,7 +222,14 @@ int main(int argc, char **argv)
     pg_config = PGConfig_parse(pgconf_file_path);
 
     /* Load the map file */
-    load_json_config_map(&config_map, map_file ? map_file : map_file_name);
+    if (load_json_config_map(&config_map, &map_profile, map_file ? map_file : map_file_name) < 0)
+    {
+        fprintf(stderr, "%s: failed to load configuration map file\n", progname);
+        return -1;
+    }
+
+    validate_map_profile(&map_profile, &system_info, force_invalid_profile);
+
     if (verbose_output)
         print_config_map(&config_map, &system_info, false);
 
@@ -228,6 +242,98 @@ int main(int argc, char **argv)
     /* Enough with gathering info. create a meaningfull config */
     create_postgresql_conf(output_file_path?output_file_path:output_conf_file,&config_map, &system_info);
     return 0;
+}
+
+static void
+validate_map_profile(PGMapProfileDetails* profile, SystemInfo *system_info, bool force)
+{
+    if (verbose_output)
+    {
+        printf("\n************** Map File Details **************\n");
+        printf("Profile Name             : %s\n",profile->name);
+        printf("Description              : %s\n",profile->description);
+        printf("Profile Version          : %s\n",profile->version);
+        printf("Engine                   : %s\n",profile->engine);
+        printf("Created on               : %s\n",profile->date_created);
+
+        if (profile->max_cpu < 0)
+            printf("Valid for Max CPU(s)     : %s\n","*");
+        else
+            printf("Valid for Max CPU(s)     : %ld\n",profile->max_cpu);
+
+        if (profile->min_cpu < 0)
+            printf("Valid for Min CPU(s)     : %s\n","*");
+        else
+            printf("Valid for Min CPU(s)     : %ld\n",profile->min_cpu);
+
+        if (profile->max_memory < 0)
+            printf("Valid for Max Memory of  : %s Bytes\n","*");
+        else
+            printf("Valid for Max Memory of  : %ldBytes\n",profile->max_memory);
+
+        if (profile->min_memory < 0)
+            printf("Valid for Min Memory of  : %s Bytes\n","*");
+        else
+            printf("Valid for Min Memory of  : %ldBytes\n",profile->min_memory);
+
+        printf("**********************************************\n");
+    }
+    /* Validate CPU count */
+    if (profile->max_cpu <  profile->min_cpu)
+    {
+        fprintf(stderr, "WARNING: Invalid CPU bounds for profile. max_cpu (%ld) is less than min_cpu(%ld) count\n",
+                profile->max_cpu, profile->min_cpu);
+        fprintf(stderr, "Ignoring CPU bounds ....\n");
+    }
+    else
+    {
+        if (profile->max_cpu > 0 && profile->max_cpu < system_info->cpu_count)
+        {
+            fprintf(stderr, "ERROR: Invalid CPU bounds for profile. Allowed value for max_cpu (%ld) is less than system cpu (%ld) count\n",
+                profile->max_cpu, system_info->cpu_count);
+            if (force)
+                fprintf(stderr, "Ignoring CPU bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+        if (profile->min_cpu > 0 &&profile->min_cpu > system_info->cpu_count)
+        {
+            fprintf(stderr, "ERROR: Invalid CPU bounds for profile. Allowed value for min_cpu (%ld) is greater than system cpu (%ld) count\n",
+                profile->min_cpu, system_info->cpu_count);
+            if (force)
+                fprintf(stderr, "Ignoring CPU bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+    }
+    /* Now the Memory */
+    if (profile->max_memory <  profile->min_memory)
+    {
+        fprintf(stderr, "WARNING: Invalid memory bounds for profile. max_memory (%ld) is less than min_memory(%ld) bytes\n",
+                profile->max_cpu, profile->min_memory);
+        fprintf(stderr, "Ignoring memory bounds ....\n");
+    }
+    else
+    {
+        if (profile->max_memory > 0 && profile->max_memory < system_info->total_ram)
+        {
+            fprintf(stderr, "ERROR: Invalid memory bounds for profile. Allowed value for max_memory (%ld) is less than system memory (%lld) bytes\n",
+                profile->max_memory, system_info->total_ram);
+            if (force)
+                fprintf(stderr, "Ignoring memory bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+        if (profile->min_memory > 0 && profile->min_memory > system_info->total_ram)
+        {
+            fprintf(stderr, "ERROR: Invalid memory bounds for profile. Allowed value for min_memory (%ld) is greater than system memory (%lld) bytes\n",
+                profile->min_memory, system_info->total_ram);
+            if (force)
+                fprintf(stderr, "Ignoring memory bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+    }
 }
 
 static long long
@@ -316,6 +422,7 @@ usage(void)
     fprintf(stderr, "  -o, --file=file-path        output conf file path. DEFAULT:\"%s\"\n",output_conf_file);
     fprintf(stderr, "  -D, --data-dir=DIR          location of the PostgreSQL data directory\n");
 
+    fprintf(stderr, "  -F, --force-profile         Force apply invalid profiles. DEFAULT=[FALSE]\n");
     fprintf(stderr, "  -v, --verbose               output verbose messages\n");
     fprintf(stderr, "  -V, --version               output version information and exit\n");
     fprintf(stderr, "  -?, --help                  print this help\n\n");

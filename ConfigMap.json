@@ -1,6 +1,15 @@
 {
+    "name" : "Test Hackathon 2023 Profile",
     "version" : "v1.0",
-    "engine" : "percona pg auto tune",
+    "engine" : "percona PostgreSQL Auto Tuning Engine V8",
+    "author" : "Hackathon team 3",
+    "description": "This profile is for super computer only",
+    "min_memory" : 102400000,
+    "min_cpu" : 10,
+    "max_memory" : 10240000000000,
+    "max_cpu" : 100,
+    "date_created" : "April 27, 2023",
+
     "config_map" : [
         {
             "parameter"     : "shared_buffers",

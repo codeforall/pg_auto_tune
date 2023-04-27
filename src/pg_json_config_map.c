@@ -6,7 +6,19 @@
 #include "json.h"
 
 #include "pg_config_map.h"
+/* profile keys */
+#define NAME_KEY            "name"
+#define VERSION_KEY         "version"
+#define DATE_CREATED_KEY    "date_created"
+#define ENGINE_KEY          "engine"
+#define AUTHOR_KEY          "author"
+#define DESCRIPTION_KEY     "description"
+#define MIN_MEMORY_KEY      "min_memory"
+#define MIN_CPU_KEY         "min_cpu"
+#define MAX_MEMORY_KEY      "max_memory"
+#define MAX_CPU_KEY         "max_cpu"
 
+/* map entriy keys */
 #define CONFIG_MAP_KEY      "config_map"
 #define PARAMETER_KEY       "parameter" 
 #define RESOURCE_KEY        "resource"
@@ -17,9 +29,10 @@
 #define TRIGGER_KEY         "trigger"
 
 static PGConfigMapEntry*  get_config_map_entry_from_json_obj(json_value *map_entry_json);
+static bool load_profile_details(json_value *map_entry_json, PGMapProfileDetails* pfofile);
 
 int
-load_json_config_map(PGConfigMap* config, const char *file_path)
+load_json_config_map(PGConfigMap* config, PGMapProfileDetails* profile, const char *file_path)
 {
    FILE * input_json;
    int seek_end_result;
@@ -31,10 +44,10 @@ load_json_config_map(PGConfigMap* config, const char *file_path)
    json_value * parsed_json;
    json_value *map_value = NULL;
 
-    config->list = NULL;
-    config->num_entries = 0;
+   config->list = NULL;
+   config->num_entries = 0;
 
-    printf("DEBUG: Loading config map from file:%s\n",file_path);
+   printf("DEBUG: Loading config map from file:%s\n",file_path);
    input_json = fopen(file_path, "rb");
    if(input_json == NULL)
    {
@@ -96,7 +109,15 @@ load_json_config_map(PGConfigMap* config, const char *file_path)
    if(parsed_json == NULL)
    {
         fprintf(stderr,"Failed to parse json file %s\n",file_path);
+        return -1;
    }
+
+   if (load_profile_details(parsed_json, profile) == false)
+   {
+        fprintf(stderr,"Failed to load profile infromation from json file %s\n",file_path);
+        return -1;
+   }
+
    map_value = json_get_value_for_key(parsed_json, CONFIG_MAP_KEY);
    if (map_value == NULL || map_value->type != json_array)
    {
@@ -127,6 +148,48 @@ load_json_config_map(PGConfigMap* config, const char *file_path)
     }
    json_value_free(parsed_json);
    return config->num_entries;
+}
+
+static bool
+load_profile_details(json_value *map_entry_json, PGMapProfileDetails* profile)
+{
+    char    *ptr;
+
+    if (map_entry_json == NULL || map_entry_json->type != json_object)
+    {
+        fprintf(stderr,"Invalid Json object\n");
+        return false;
+    }
+
+    ptr = json_get_string_value_for_key(map_entry_json, NAME_KEY);
+    profile->name = ptr? strdup(ptr): strdup("no name");
+
+    ptr = json_get_string_value_for_key(map_entry_json, VERSION_KEY);
+    profile->version = ptr? strdup(ptr): strdup("no version info");
+
+    ptr = json_get_string_value_for_key(map_entry_json, ENGINE_KEY);
+    profile->engine = ptr? strdup(ptr): strdup("no Engine info");
+
+    ptr = json_get_string_value_for_key(map_entry_json, AUTHOR_KEY);
+    profile->author = ptr? strdup(ptr): strdup("no author info");
+
+    ptr = json_get_string_value_for_key(map_entry_json, DESCRIPTION_KEY);
+    profile->description = ptr? strdup(ptr): strdup("no description");
+
+    ptr = json_get_string_value_for_key(map_entry_json, DATE_CREATED_KEY);
+    profile->date_created = ptr? strdup(ptr): strdup("no date info");
+
+
+    if (json_get_long_value_for_key(map_entry_json, MIN_MEMORY_KEY, &profile->max_memory))
+        profile->min_memory = -1;
+    if (json_get_long_value_for_key(map_entry_json, MIN_CPU_KEY, &profile->min_cpu))
+        profile->min_cpu = -1;
+    if (json_get_long_value_for_key(map_entry_json, MAX_MEMORY_KEY, &profile->max_memory))
+        profile->max_memory = -1;
+    if (json_get_long_value_for_key(map_entry_json, MAX_CPU_KEY, &profile->max_cpu))
+        profile->max_cpu = -1;
+
+    return true;
 }
 
 

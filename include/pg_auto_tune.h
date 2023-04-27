@@ -116,6 +116,20 @@ struct pg_config_map_entry
     PGConfigMapEntry *next;
 };
 
+typedef struct pg_map_profile_details
+{
+    long    min_memory;
+    long    min_cpu;
+    long    max_memory;
+    long    max_cpu;
+    char*   name;
+    char*   author;
+    char*   description;
+    char*   version;
+    char*   date_created;
+    char*   engine;
+}PGMapProfileDetails;
+
 typedef struct pg_config_map
 {
     int num_entries;

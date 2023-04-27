@@ -33,7 +33,7 @@ char *get_formula_name(FORMULAS formula);
 RESOURCES identify_resource(char* token);
 FORMULAS identify_formula(char* token);
 
-int load_json_config_map(PGConfigMap* config, const char *file_path);
+int load_json_config_map(PGConfigMap* config, PGMapProfileDetails* profile, const char *file_path);
 
 void print_config_map(PGConfigMap* config, SystemInfo *sys_info, bool report);
 void create_postgresql_conf(const char *output_file_path,PGConfigMap* config, SystemInfo *sys_info);
