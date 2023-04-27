@@ -303,6 +303,8 @@ PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
             return false;
         }
         memcpy(param->value, char_val, strlen(char_val));
+        param->type = vtype;
+
         if (vtype != PTYPE_CHAR)
         {
             if (vtype == PTYPE_INT)
