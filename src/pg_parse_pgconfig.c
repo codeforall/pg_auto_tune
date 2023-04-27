@@ -118,7 +118,7 @@ PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
     bool is_enclosed = false;
 
     //
-    bool is_numeric = false;
+    PARAM_TYPE vtype = PTYPE_CHAR;
 
     // We'll store the string position to make the code more readable and less error prone
     ssize_t str_pos = 0;
@@ -204,7 +204,7 @@ PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
 
                 if (isdigit(c))
                 {
-                    is_numeric = true;
+                    vtype = PTYPE_INT;
                     num_val[strlen(num_val)] = c;
                 }
 
@@ -249,10 +249,15 @@ PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
                         return false;
                 }
 
-                if (is_numeric)
+                if (vtype != PTYPE_CHAR)
                 {
-                    if (isdigit(c))
+                    if (isdigit(c) || c == CHAR_DOT)
+                    {
+                        if (c == CHAR_DOT)
+                            vtype = PTYPE_FLOAT;
+
                         num_val[strlen(num_val)] = c;
+                    }
                     else if (isalpha(c))
                     {
                         if (strlen(num_unit) >= NUM_UNIT_MAX)
@@ -298,21 +303,31 @@ PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
             return false;
         }
         memcpy(param->value, char_val, strlen(char_val));
-        if (is_numeric)
+        param->type = vtype;
+
+        if (vtype != PTYPE_CHAR)
         {
-            param->int_val = atol(num_val);
-            if (strlen(num_unit) > 0)
+            if (vtype == PTYPE_INT)
             {
-                if (!strcasecmp("kb", num_unit))
-                    param->int_val *= NUM_UNIT_KB;
-                else if (!strcasecmp("mb", num_unit))
-                    param->int_val *= NUM_UNIT_MB;
-                else if (!strcasecmp("gb", num_unit))
-                    param->int_val *= NUM_UNIT_GB;
-                else if (!strcasecmp("tb", num_unit))
-                    param->int_val *= NUM_UNIT_TB;
-                else if (!strcasecmp("pb", num_unit))
-                    param->int_val *= NUM_UNIT_PB;
+                param->int_val = atol(num_val);
+                if (strlen(num_unit) > 0)
+                {
+                    if (!strcasecmp("kb", num_unit))
+                        param->int_val *= NUM_UNIT_KB;
+                    else if (!strcasecmp("mb", num_unit))
+                        param->int_val *= NUM_UNIT_MB;
+                    else if (!strcasecmp("gb", num_unit))
+                        param->int_val *= NUM_UNIT_GB;
+                    else if (!strcasecmp("tb", num_unit))
+                        param->int_val *= NUM_UNIT_TB;
+                    else if (!strcasecmp("pb", num_unit))
+                        param->int_val *= NUM_UNIT_PB;
+                }
+            }
+            else
+            {
+                param->dec_val = atof(num_val);
+                // printf("%s: %.4f\n", param->key, param->dec_val);
             }
         }
 

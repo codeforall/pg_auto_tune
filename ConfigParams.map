@@ -12,9 +12,11 @@
 #   WORKLOAD
 #   NODE_TYPE
 #   HOST_TYPE
+#   CUSTOM
 #
 # Allowed values for FORMULA
 #   PERCENTAGE
+#   CUSTOM
 #   
 # ------------------------------------------------
 #
@@ -26,3 +28,7 @@ max_stack_depth         memory  percentage 1 1  1
 
 max_worker_processes    cpu     percentage  100 100 100
 max_parallel_workers_per_gather cpu percentage  20 20 20
+
+seq_page_cost CUSTOM  CUSTOM  1.0  1.1  0.9
+parallel_tuple_cost  CUSTOM  0.1  0.05  0.15
+autovacuum_vacuum_scale_factor  CUSTOM  CUSTOM  0.3  0.4  0.5
