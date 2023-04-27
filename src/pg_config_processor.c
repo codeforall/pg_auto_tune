@@ -76,7 +76,7 @@ process_config_map(PGConfigMap* config_map, SystemInfo *system_info)
 static int
 percentage_processor(PGConfigMapEntry *map_entry, SystemInfo *system_info)
 {
-    long factor_value;
+    double factor_value;
     double ref_value = INVALID_DOUBLE_VAL;
 
     if(!map_entry)
@@ -142,7 +142,7 @@ percentage_processor(PGConfigMapEntry *map_entry, SystemInfo *system_info)
 static int
 custom_processor(PGConfigMapEntry *map_entry, SystemInfo *system_info)
 {
-    long factor_value;
+    double factor_value;
     double ref_value = INVALID_DOUBLE_VAL;
 
     if(!map_entry)
