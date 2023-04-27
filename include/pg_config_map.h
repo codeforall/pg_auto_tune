@@ -29,6 +29,7 @@ int load_config_map(PGConfigMap *config, char *map_file);
 void free_config_map(PGConfigMap *config);
 char *get_resource_name(RESOURCES res);
 char *get_formula_name(FORMULAS formula);
+char* get_workload_type(WORKLOAD_TYPE wrk);
 
 RESOURCES identify_resource(char* token);
 FORMULAS identify_formula(char* token);

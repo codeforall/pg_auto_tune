@@ -168,13 +168,13 @@ custom_processor(PGConfigMapEntry *map_entry, SystemInfo *system_info)
         map_entry->optimised_value = factor_value;
         map_entry->status = ENTRY_PROCESSED_SUCCESS;
         if (ref_value == map_entry->optimised_value)
-            snprintf(map_entry->message,MAX_MESSAGE_LEN, "Optimised value for parameter: \"%s\" is already optimum (%f)",
+            snprintf(map_entry->message,MAX_MESSAGE_LEN, "Optimised value for parameter: \"%s\" is already optimum (%.2f)",
                  map_entry->param, map_entry->optimised_value);
         else if (ref_value != INVALID_DOUBLE_VAL)
-            snprintf(map_entry->message,MAX_MESSAGE_LEN, "Optimised value for parameter: \"%s\" is changed from %f to %f",
+            snprintf(map_entry->message,MAX_MESSAGE_LEN, "Optimised value for parameter: \"%s\" is changed from %.2f to %.2f",
                  map_entry->param,ref_value, map_entry->optimised_value);
         else
-            snprintf(map_entry->message,MAX_MESSAGE_LEN, "Optimised value for parameter: \"%s\" is set to %f",
+            snprintf(map_entry->message,MAX_MESSAGE_LEN, "Optimised value for parameter: \"%s\" is set to %.2f",
                  map_entry->param, map_entry->optimised_value);
 
         return 0;

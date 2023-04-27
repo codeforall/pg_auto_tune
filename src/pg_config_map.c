@@ -319,7 +319,7 @@ print_config_map_entry(PGConfigMapEntry *entry)
     printf("OLTP:%f OLAP:%f MIXED:%f\n",entry->oltp_value,entry->olap_value,entry->mixed_value);
 
     if (entry->status == ENTRY_PROCESSED_SUCCESS)
-        printf("\t optimised_value=%f",entry->optimised_value);
+        printf("\t optimised_value=%.2f",entry->optimised_value);
     else if (entry->status == ENTRY_PROCESSED_ERROR)
         printf("\t *processing_error*");
     if (entry->conf_ref)
@@ -371,10 +371,10 @@ create_postgresql_conf(const char *output_file_path,PGConfigMap* config, SystemI
             if (entry->resource == RESOURCE_MEMORY || entry->resource == RESOURCE_CPU)
                 fprintf(fp, "%lld\n",(long long) entry->optimised_value);
             else
-                fprintf(fp, "%f\n", entry->optimised_value);
+                fprintf(fp, "%.2f\n", entry->optimised_value);
         }
         entry = entry->next;
     }
     fclose(fp);
-    printf("\nLOG: configuration file \"%s\"generated\n",output_file_path);
+    printf("\nLOG: configuration file \"%s\" generated\n",output_file_path);
 }

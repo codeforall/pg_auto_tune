@@ -49,14 +49,14 @@ static int get_CPU_count(void);
 static double get_disk_speed(const char *filePath);
 static void usage(void);
 static void validate_map_profile(PGMapProfileDetails* profile, SystemInfo *system_info, bool force);
-
+static void validate_system_inof(SystemInfo *system_info);
 int main(int argc, char **argv)
 {
     int ch;
     int optindex;
     char test_file_path[MAX_FILE_PATH_SIZE];
     char pgconf_file_path[MAX_FILE_PATH_SIZE];
-    const char *allowed_options = "h:n:d:w:D:m:o:vV";
+    const char *allowed_options = "h:n:d:w:D:m:o:vVF";
     PGConfig *pg_config;
     PGConfigMap config_map;
     PGMapProfileDetails map_profile;
@@ -102,11 +102,11 @@ int main(int argc, char **argv)
         switch (ch)
         {
         case 'h': /*Host type*/
-            if (strcmp(optarg, "p") == 0 || strcmp(optarg, "pod") == 0)
+            if (strcmp(optarg, "p") == 0 || strcasecmp(optarg, "pod") == 0)
                 system_info.host_type = POD;
-            else if (strcmp(optarg, "s") == 0 || strcmp(optarg, "standard") == 0)
+            else if (strcmp(optarg, "s") == 0 || strcasecmp(optarg, "standard") == 0)
                 system_info.host_type = STANDARD;
-            else if (strcmp(optarg, "c") == 0 || strcmp(optarg, "cloud") == 0)
+            else if (strcmp(optarg, "c") == 0 || strcasecmp(optarg, "cloud") == 0)
                 system_info.host_type = CLOUD;
             else
             {
@@ -116,9 +116,9 @@ int main(int argc, char **argv)
             break;
 
         case 'n': /*Node type*/
-            if (strcmp(optarg, "p") == 0 || strcmp(optarg, "primary") == 0)
+            if (strcmp(optarg, "p") == 0 || strcasecmp(optarg, "primary") == 0)
                 system_info.node_type = PRIMARY;
-            else if (strcmp(optarg, "s") == 0 || strcmp(optarg, "standby") == 0)
+            else if (strcmp(optarg, "s") == 0 || strcasecmp(optarg, "standby") == 0)
                 system_info.node_type = STANDBY;
             else
             {
@@ -128,11 +128,11 @@ int main(int argc, char **argv)
             break;
 
         case 'd': /*Disk type*/
-            if (strcmp(optarg, "m") == 0 || strcmp(optarg, "magnetic") == 0)
+            if (strcmp(optarg, "m") == 0 || strcasecmp(optarg, "magnetic") == 0)
                 system_info.disk_type = MAGNETIC;
-            else if (strcmp(optarg, "s") == 0 || strcmp(optarg, "ssd") == 0)
+            else if (strcmp(optarg, "s") == 0 || strcasecmp(optarg, "ssd") == 0)
                 system_info.disk_type = SSD;
-            else if (strcmp(optarg, "n") == 0 || strcmp(optarg, "network") == 0)
+            else if (strcmp(optarg, "n") == 0 || strcasecmp(optarg, "network") == 0)
                 system_info.disk_type = NETWORK;
             else
             {
@@ -142,11 +142,11 @@ int main(int argc, char **argv)
             break;
 
         case 'w': /*Workload */
-            if (strcmp(optarg, "l") == 0 || strcmp(optarg, "olap") == 0)
+            if (strcmp(optarg, "l") == 0 || strcasecmp(optarg, "olap") == 0)
                 system_info.workload_type = OLAP;
-            else if (strcmp(optarg, "t") == 0 || strcmp(optarg, "oltp") == 0)
+            else if (strcmp(optarg, "t") == 0 || strcasecmp(optarg, "oltp") == 0)
                 system_info.workload_type = OLTP;
-            else if (strcmp(optarg, "m") == 0 || strcmp(optarg, "mixed") == 0)
+            else if (strcmp(optarg, "m") == 0 || strcasecmp(optarg, "mixed") == 0)
                 system_info.workload_type = MIXED;
             else
             {
@@ -218,6 +218,7 @@ int main(int argc, char **argv)
 
     snprintf(pgconf_file_path, MAX_FILE_PATH_SIZE, "%s/%s", data_dir, "postgresql.conf");
 
+    validate_system_inof(&system_info);
     /* Load configuration parameters from postgresql.conf */
     pg_config = PGConfig_parse(pgconf_file_path);
 
@@ -242,6 +243,34 @@ int main(int argc, char **argv)
     /* Enough with gathering info. create a meaningfull config */
     create_postgresql_conf(output_file_path?output_file_path:output_conf_file,&config_map, &system_info);
     return 0;
+}
+
+static void
+validate_system_inof(SystemInfo *system_info)
+{
+    if (verbose_output)
+    {
+        printf("\n************** System Info **************\n");
+        printf("WorkLoad type   : %s\n",get_workload_type(system_info->workload_type));
+        printf("Installed RAM   : %lld\n",system_info->total_ram);
+        printf("Installed CPU   : %ld\n",system_info->cpu_count);
+        printf("Disk read speed : %.2f MB/s\n",system_info->disk_speed);
+        printf("**********************************************\n");
+    }
+    if (system_info->total_ram <= 0)
+    {
+        fprintf(stderr, "ERROR: Failed to get installed RAM size\n");
+        exit(1);
+    }
+    if (system_info->cpu_count <= 0)
+    {
+        fprintf(stderr, "ERROR: Failed to get installed CPU count from system\n");
+        exit(1);
+    }
+    if (system_info->disk_speed <= 0)
+    {
+        fprintf(stderr, "WARNING: Failed to get installed CPU count from system\n");
+    }
 }
 
 static void
@@ -346,9 +375,6 @@ get_ram_size(void)
         fprintf(stderr, "Failed to retrieve system information %s:\n", strerror(errno));
         return -1;
     }
-
-    if (verbose_output)
-        printf("LOG: RAM size: %ld bytes\n", info.totalram);
     return info.totalram;
 }
 
@@ -362,8 +388,6 @@ get_CPU_count(void)
         return -1;
     }
 
-    if (verbose_output)
-        printf("LOG: CPU core count: %ld\n", count);
     return count;
 }
 
@@ -395,11 +419,9 @@ get_disk_speed(const char *filePath)
     double duration = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.0;
     double speed = (double)BUFFER_SIZE / (1024.0 * 1024.0 * duration);
 
-    if (verbose_output)
-        printf("Disk speed: %.2f MB/s\n", speed);
-
     return speed;
 }
+
 
 static void
 usage(void)
