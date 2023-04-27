@@ -18,6 +18,8 @@
 #ifndef __PG_AUTO_TUNE_H__
 #define __PG_AUTO_TUNE_H__
 
+#include "pg_parse_pgconfig.h"
+
 #define MAX_MESSAGE_LEN 256
 
 typedef enum WORKLOAD_TYPE
@@ -51,13 +53,6 @@ typedef enum HOST_TYPE
     UNKNOWN_HOST
 } HOST_TYPE;
 
-typedef enum PARAM_TYPE
-{
-    CHAR,
-    INT,
-    FLOAT
-} PARAM_TYPE;
-
 typedef struct system_info
 {
     long long total_ram;
@@ -68,23 +63,6 @@ typedef struct system_info
     DISK_TYPE disk_type;
     WORKLOAD_TYPE workload_type;
 } SystemInfo;
-
-typedef struct pg_config_key_value PGConfigKeyVal;
-struct pg_config_key_value
-{
-    char *key;
-    char *value;
-    PGConfigKeyVal *next;
-
-};
-
-typedef struct pg_config
-{
-    int num_params;
-    PGConfigKeyVal *list;
-
-} PGConfig;
-
 
 typedef enum RESOURCES
 {
@@ -140,12 +118,6 @@ typedef struct pg_config_map
     PGConfigMapEntry *list;
 
 } PGConfigMap;
-
-#define MAX_CONFIG_CHAR_VAL 1024
-
-PGConfig *PGConfig_parse(char *path);
-void PGConfig_destroy(PGConfig *config);
-PGConfigKeyVal* get_config_for_param(PGConfig *config, char *param_name);
 
 /* located in pg_config_processor.c */
 void load_pg_config_in_map(PGConfigMap* config_map, PGConfig *pg_config);

@@ -30,20 +30,28 @@
 //
 #include "pg_auto_tune.h"
 
-#define COMMENT_CHARS "#" /* default comment chars */
-#define KEYVAL_SEP '='    /* default key-val seperator character */
-#define STR_TRUE "1"      /* default string valu of true */
-#define STR_FALSE "0"     /* default string valu of false */
+#define CHAR_COMMENT '#' /* default comment chars */
+#define CHAR_EQUAL '='   /* default key-val separator character */
+#define CHAR_DOT '.'
+#define CHAR_UNDERLINE '_'
+#define CHAR_QUOTE '\''
+#define CHAR_ESCAPE '\\'
+#define CHAR_NLINE '\n'
+#define NUM_LEN 64
+#define NUM_UNIT_MAX 5
+#define NUM_UNIT_KB (1024UL)
+#define NUM_UNIT_MB (NUM_UNIT_KB * NUM_UNIT_KB)
+#define NUM_UNIT_GB (NUM_UNIT_MB * NUM_UNIT_KB)
+#define NUM_UNIT_TB (NUM_UNIT_GB * NUM_UNIT_KB)
+#define NUM_UNIT_PB (NUM_UNIT_TB * NUM_UNIT_KB)
 
 static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line);
 static void PGConfigKeyVal_free(PGConfigKeyVal *param);
-static bool CH_is_number(char c);
-static bool CH_is_char(char c);
-static bool CH_is_underscore(char c);
 
 ssize_t line_nu = 0;
 
-PGConfig *PGConfig_parse(char *path)
+PGConfig *
+PGConfig_parse(char *path)
 {
     FILE *fp;
     PGConfig *config = NULL;
@@ -56,7 +64,7 @@ PGConfig *PGConfig_parse(char *path)
         return NULL;
     }
 
-    config = malloc(sizeof *config);
+    config = calloc(1, sizeof *config);
     if (config == NULL)
     {
         perror("Not possible to allocate memory for the Parameters");
@@ -85,11 +93,12 @@ PGConfig *PGConfig_parse(char *path)
     return config;
 }
 
-static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
+static bool
+PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, char *line)
 {
     //
     PGConfigKeyVal *param = NULL;
-    param = malloc(sizeof *param);
+    param = calloc(1, sizeof *param);
     if (param == NULL)
     {
         perror("Not possible to allocate memory for the Parameters");
@@ -97,14 +106,19 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
     }
 
     // We need a temporary buffer to store values
-    char tmp[MAX_CONFIG_CHAR_VAL];
+    char char_val[MAX_CONFIG_CHAR_VAL];
+    char num_val[NUM_LEN];
+    char num_unit[NUM_UNIT_MAX];
 
     // We started reading something
     bool is_reading = false;
 
     // If the param value is an enclosed string or not
     // We only use it here to be able to read special characters inside of an enclosed string, specially the "#"
-    bool is_str = false;
+    bool is_enclosed = false;
+
+    //
+    bool is_numeric = false;
 
     // We'll store the string position to make the code more readable and less error prone
     ssize_t str_pos = 0;
@@ -120,10 +134,12 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
     u_int8_t phase = 0;
 
     // Let's clean our buffer before we start working
-    memset(&tmp, 0, MAX_CONFIG_CHAR_VAL);
+    memset(&char_val, 0, MAX_CONFIG_CHAR_VAL);
+    memset(&num_val, 0, NUM_LEN);
+    memset(&num_unit, 0, NUM_UNIT_MAX);
 
     char c;
-    while ((c = *line++) != '\n')
+    while ((c = *line++) != CHAR_NLINE)
     {
         // We are reading
         if (is_reading)
@@ -134,25 +150,25 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
             case 1:
                 // If we find a space or an equals sign (=) it means we reached to the end of the key name
                 if (isspace(c) ||
-                    c == KEYVAL_SEP)
+                    c == CHAR_EQUAL)
                 {
                     is_reading = false;
                     line++;
 
-                    param->key = malloc(strlen(tmp) * sizeof(char));
+                    param->key = calloc(strlen(char_val), sizeof(char));
                     if (param->key == NULL)
                     {
                         perror("Not possible to allocate memory for the Parameters");
                         return false;
                     }
-                    memcpy(param->key, tmp, strlen(tmp));
+                    memcpy(param->key, char_val, strlen(char_val));
 
                     // printf("We found a Key: %s\n", tmp);
                 }
-                // We also need to check the characther in the key name is valid
-                else if (CH_is_number(c) || CH_is_char(c) || CH_is_underscore(c))
+                // We also need to check the character in the key name is valid
+                else if (isdigit(c) || isalpha(c) || c == CHAR_UNDERLINE)
                 {
-                    tmp[str_pos++] = c;
+                    char_val[str_pos++] = c;
                 }
                 else
                     return false;
@@ -167,56 +183,62 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
                 }
 
                 // Before we start populating anything we need to clean the buffer
-                memset(&tmp, 0, MAX_CONFIG_CHAR_VAL);
+                memset(&char_val, 0, MAX_CONFIG_CHAR_VAL);
                 str_pos = 0;
 
-                // We also need to check the characther in the key name is valid
+                // We also need to check the character in the key name is valid
                 // Is it a numeric value?
-                if (CH_is_number(c) || CH_is_char(c))
+                if (isdigit(c) || isalpha(c))
                 {
-                    is_str = false;
+                    is_enclosed = false;
                 }
                 // Maybe a string value?
-                else if (c == '\'')
+                else if (c == CHAR_QUOTE)
                 {
-                    is_str = true;
+                    is_enclosed = true;
+                    line++;
+                    c = *line;
                 }
                 else
                     return false;
 
-                tmp[str_pos++] = c;
+                if (isdigit(c))
+                {
+                    is_numeric = true;
+                    num_val[strlen(num_val)] = c;
+                }
+
+                char_val[str_pos++] = c;
                 phase++;
                 break;
 
             case 3:
 
                 // We check if we are dealing with an enclosed string
-                if (is_str)
+                if (is_enclosed)
                 {
                     // We found a closing string character
-                    if (c == '\'')
+                    if (c == CHAR_QUOTE)
                     {
                         is_reading = false;
-                        is_str = false;
+                        is_enclosed = false;
                     }
                     // We found a scaping character, we need to check if the next one is the closing string char to escape it
-                    else if (c == '\\')
+                    else if (c == CHAR_ESCAPE)
                     {
-                        if (*line == '\'')
-                        {
-                            tmp[str_pos++] = '\'';
+                        if (*line == CHAR_QUOTE)
                             line++;
-                        }
                     }
 
-                    tmp[str_pos++] = c;
+                    char_val[str_pos++] = c;
                 }
                 // or a number
                 else
                 {
                     // We check if this is a valid number, a valid string, or a dot
-                    if (CH_is_number(c) || CH_is_char(c) || c == '.')
-                        tmp[str_pos++] = c;
+                    //(isdigit(c) || isalpha(c) || c == CHAR_UNDERLINE)
+                    if (isdigit(c) || isalpha(c) || c == CHAR_DOT)
+                        char_val[str_pos++] = c;
 
                     // If we find a space we just stop appending
                     else if (isspace(c))
@@ -227,6 +249,21 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
                         return false;
                 }
 
+                if (is_numeric)
+                {
+                    if (isdigit(c))
+                        num_val[strlen(num_val)] = c;
+                    else if (isalpha(c))
+                    {
+                        if (strlen(num_unit) >= NUM_UNIT_MAX)
+                        {
+                            fprintf(stderr, "Error invalid number unit at line %ld\n", line_nu);
+                            return false;
+                        }
+                        else
+                            num_unit[strlen(num_unit)] = c;
+                    }
+                }
                 break;
 
             default:
@@ -240,7 +277,7 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
                 continue;
 
             // If a comment we break the loop
-            if (c == '#')
+            if (c == CHAR_COMMENT)
                 break;
 
             // We found a valid string. It's either a key NAME or a key VALUE depending on the "phase"
@@ -254,14 +291,30 @@ static bool PGConfig_parse_line(PGConfig *config, PGConfigKeyVal **curr_param, c
 
     if (phase >= 3)
     {
-        param->value = malloc(strlen(tmp) * sizeof(char));
+        param->value = calloc(strlen(char_val), sizeof(char));
         if (param->value == NULL)
         {
             perror("Not possible to allocate memory for the Parameters");
             return false;
         }
-        memcpy(param->value, tmp, strlen(tmp));
-        // printf("    Value: %s\n", tmp);
+        memcpy(param->value, char_val, strlen(char_val));
+        if (is_numeric)
+        {
+            param->int_val = atol(num_val);
+            if (strlen(num_unit) > 0)
+            {
+                if (!strcasecmp("kb", num_unit))
+                    param->int_val *= NUM_UNIT_KB;
+                else if (!strcasecmp("mb", num_unit))
+                    param->int_val *= NUM_UNIT_MB;
+                else if (!strcasecmp("gb", num_unit))
+                    param->int_val *= NUM_UNIT_GB;
+                else if (!strcasecmp("tb", num_unit))
+                    param->int_val *= NUM_UNIT_TB;
+                else if (!strcasecmp("pb", num_unit))
+                    param->int_val *= NUM_UNIT_PB;
+            }
+        }
 
         if (*curr_param == NULL)
         {
@@ -296,7 +349,8 @@ void PGConfig_destroy(PGConfig *config)
     }
 }
 
-static void PGConfigKeyVal_free(PGConfigKeyVal *param)
+static void
+PGConfigKeyVal_free(PGConfigKeyVal *param)
 {
     if (param->key != NULL)
         free(param->key);
@@ -307,42 +361,17 @@ static void PGConfigKeyVal_free(PGConfigKeyVal *param)
     free(param);
 }
 
-static bool CH_is_number(char c)
+PGConfigKeyVal *
+PGConfig_get_param_by_name(PGConfig *config, char *param_name)
 {
-    if (c >= '0' && c <= '9')
-        return true;
-
-    return false;
-}
-
-static bool CH_is_char(char c)
-{
-    if ((c >= 'A' && c <= 'Z')    // Upercase chars
-        || (c >= 'a' && c <= 'z') // Lowercase chars
-    )
-        return true;
-
-    return false;
-}
-
-static bool CH_is_underscore(char c)
-{
-    if (c == '_')
-        return true;
-
-    return false;
-}
-
-PGConfigKeyVal*
-get_config_for_param(PGConfig *config, char *param_name)
-{
-    PGConfigKeyVal* val;
+    PGConfigKeyVal *val;
     if (!config || !param_name)
         return NULL;
-        val = config->list;
+
+    val = config->list;
     while (val)
     {
-        if (val->key && !strcasecmp(val->key,param_name))
+        if (val->key && !strcasecmp(val->key, param_name))
             return val;
         val = val->next;
     }
