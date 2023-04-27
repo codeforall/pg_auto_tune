@@ -20,17 +20,19 @@
 
 typedef enum PARAM_TYPE
 {
-    CHAR,
-    INT,
-    FLOAT
+    PTYPE_CHAR,
+    PTYPE_INT,
+    PTYPE_FLOAT
 } PARAM_TYPE;
 
 typedef struct pg_config_key_value PGConfigKeyVal;
 struct pg_config_key_value
 {
+    PARAM_TYPE type;
     char *key;
     char *value;
     u_int64_t int_val;
+    float dec_val;
     PGConfigKeyVal *next;
 
 };
