@@ -17,10 +17,11 @@
 
 #ifndef __PG_AUTO_TUNE_H__
 #define __PG_AUTO_TUNE_H__
-
+#include <stdbool.h>
 #include "pg_parse_pgconfig.h"
 
 #define MAX_MESSAGE_LEN 256
+#define INVALID_DOUBLE_VAL  999999999.99
 
 typedef enum WORKLOAD_TYPE
 {
@@ -72,6 +73,7 @@ typedef enum RESOURCES
     RESOURCE_WORKLOAD,
     RESOURCE_NODE_TYPE,
     RESOURCE_HOST_TYPE,
+    RESOURCE_CUSTOM,
     INVALID_RESOURCE
 } RESOURCES;
 
@@ -79,6 +81,7 @@ typedef enum FORMULAS
 {
     PERCENTAGE,
     SCRIPT,
+    CUSTOM,
     INVALID_FORMULA
 }FORMULAS;
 
@@ -97,15 +100,16 @@ struct pg_config_map_entry
     char *param;
     RESOURCES   resource;
     FORMULAS formula;
-    long    oltp_value;
-    long    olap_value;
-    long    mixed_value;
+    double    oltp_value;
+    double    olap_value;
+    double    mixed_value;
+    double    trigger_value;
     ENTRY_STATUS    status;
 
     /* These fields are used by processor */
     
-    long optimised_value;
-    char *message;
+    double optimised_value;
+    char message[MAX_MESSAGE_LEN];
     PGConfigKeyVal  *conf_ref;
 
     /* Next item reference */

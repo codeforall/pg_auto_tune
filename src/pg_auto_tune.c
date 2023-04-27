@@ -33,18 +33,19 @@
 int verbose_output = 0;
 char *data_dir = NULL;
 char *map_file = NULL;
+char *output_file_path = NULL;
 const char *progname = "pg_auto_tune";
 const char *description = "Auto tuning for PostgreSQL by Percona";
 const char *package = "Percona";
 const char *version = "1.0";
 const char *speed_test_file = "base/1/1255";
 const char *output_conf_file = "per_postgresql.conf";
-const char *map_file_name = "ConfigParams.map";
+// const char *map_file_name = "ConfigParams.map";
+const char *map_file_name = "ConfigMap.json";
 
 static long long get_ram_size(void);
 static int get_CPU_count(void);
 static double get_disk_speed(const char *filePath);
-static void create_postgresql_conf(char *data_dir, SystemInfo *sys_inf);
 static void usage(void);
 
 int main(int argc, char **argv)
@@ -53,7 +54,7 @@ int main(int argc, char **argv)
     int optindex;
     char test_file_path[MAX_FILE_PATH_SIZE];
     char pgconf_file_path[MAX_FILE_PATH_SIZE];
-    const char *allowed_options = "h:n:d:w:D:m:vV";
+    const char *allowed_options = "h:n:d:w:D:m:o:vV";
     PGConfig *pg_config;
     PGConfigMap config_map;
 
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
         .host_type = UNKNOWN_HOST,
         .node_type = UNKNOWN_NT,
         .disk_type = UNKNOWN_DT,
-        .workload_type = UNKNOWN_WL};
+        .workload_type = MIXED};
     static struct option long_options[] = {
         {"help", no_argument, NULL, '?'},
         {"version", no_argument, NULL, 'V'},
@@ -75,6 +76,7 @@ int main(int argc, char **argv)
         {"workload-type", required_argument, NULL, 'w'},
         {"data-dir", required_argument, NULL, 'D'},
         {"map-file", required_argument, NULL, 'm'},
+        {"out-file", required_argument, NULL, 'o'},
         {NULL, 0, NULL, 0}};
 
     if (argc > 1)
@@ -157,6 +159,10 @@ int main(int argc, char **argv)
             map_file = strdup(optarg);
             break;
 
+        case 'o':
+            output_file_path = strdup(optarg);
+            break;
+
         case 'D':
             data_dir = strdup(optarg);
             break;
@@ -209,17 +215,18 @@ int main(int argc, char **argv)
     pg_config = PGConfig_parse(pgconf_file_path);
 
     /* Load the map file */
-    load_config_map(&config_map, map_file ? map_file : map_file_name);
+    load_json_config_map(&config_map, map_file ? map_file : map_file_name);
     if (verbose_output)
-        print_config_map(&config_map);
+        print_config_map(&config_map, &system_info, false);
+
 
     load_pg_config_in_map(&config_map, pg_config);
     process_config_map(&config_map, &system_info);
 
-    print_config_map(&config_map);
+    print_config_map(&config_map, &system_info, true);
 
     /* Enough with gathering info. create a meaningfull config */
-    create_postgresql_conf(data_dir, &system_info);
+    create_postgresql_conf(output_file_path?output_file_path:output_conf_file,&config_map, &system_info);
     return 0;
 }
 
@@ -252,27 +259,6 @@ get_CPU_count(void)
     if (verbose_output)
         printf("LOG: CPU core count: %ld\n", count);
     return count;
-}
-
-static void
-create_postgresql_conf(char *data_dir, SystemInfo *sys_inf)
-{
-    FILE *fp;
-    char output_file_path[MAX_FILE_PATH_SIZE];
-    snprintf(output_file_path, MAX_FILE_PATH_SIZE, "%s/%s", data_dir, output_conf_file);
-
-    if (verbose_output)
-        printf("LOG: Optimizing configuration in: %s\n", output_file_path);
-
-    // shared_buffers
-    // max_worker_processes
-    // work_mem
-    // random_page_cost
-
-    fp = fopen(output_file_path, "w+");
-    fprintf(fp, "shared_buffers = %dGB\n", 10);
-    fprintf(fp, "max_worker_processes = %ld\n", sys_inf->cpu_count);
-    fclose(fp);
 }
 
 static double
@@ -324,9 +310,10 @@ usage(void)
     fprintf(stderr, "  -h, --host-type=TYPE        TYPE can be \"pod\", \"standard\", or \"cloud\"\n");
     fprintf(stderr, "  -n, --node-type=TYPE        TYPE can be \"primary\", or \"standby\"\n");
     fprintf(stderr, "  -d, --disk-type=TYPE        TYPE can be \"magnetic\", \"ssd\", or \"network\"\n");
-    fprintf(stderr, "  -w, --workload-type=TYPE   TYPE can be \"olap\", \"oltp\", or \"mixed\"\n");
+    fprintf(stderr, "  -w, --workload-type=TYPE    TYPE can be \"olap\", \"oltp\", or \"mixed\" DEFAULE=[MIXED]\n");
 
-    fprintf(stderr, "  -m, --file=file-path        path of config map file\n");
+    fprintf(stderr, "  -m, --file=file-path        path of config map file. DEFAULT:\"%s\"\n",map_file_name);
+    fprintf(stderr, "  -o, --file=file-path        output conf file path. DEFAULT:\"%s\"\n",output_conf_file);
     fprintf(stderr, "  -D, --data-dir=DIR          location of the PostgreSQL data directory\n");
 
     fprintf(stderr, "  -v, --verbose               output verbose messages\n");

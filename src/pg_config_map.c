@@ -7,8 +7,6 @@
 #include "pg_config_map.h"
 
 static char *get_next_token(char *buf, char *token, int max_token_len, int* token_len);
-static RESOURCES identify_resource(char* token);
-static FORMULAS identify_formula(char* token);
 
 int
 load_config_map(PGConfigMap* config, char *map_file)
@@ -120,7 +118,7 @@ load_config_map(PGConfigMap* config, char *map_file)
     return config->num_entries;
 }
 
-static RESOURCES
+RESOURCES
 identify_resource(char* token)
 {
     if (!token)
@@ -137,11 +135,14 @@ identify_resource(char* token)
         return RESOURCE_NODE_TYPE;
     if (!strcasecmp("HOST_TYPE",token))
         return RESOURCE_HOST_TYPE;
+    if (!strcasecmp("CUSTOM",token))
+        return RESOURCE_CUSTOM;
+
     return INVALID_RESOURCE;
 }
 
 
-static FORMULAS
+FORMULAS
 identify_formula(char* token)
 {
     if (!token)
@@ -150,9 +151,30 @@ identify_formula(char* token)
         return PERCENTAGE;
     if (!strcasecmp("SCRIPT",token))
         return SCRIPT;
+    if (!strcasecmp("CUSTOM",token))
+        return CUSTOM;
     return INVALID_FORMULA;
 }
 
+char*
+get_workload_type(WORKLOAD_TYPE wrk)
+{
+    switch (wrk)
+    {
+    case OLTP:
+        return "OLTP";
+        break;
+    case OLAP:
+        return "OLTP";
+        break;
+    case MIXED:
+        return "MIXED";
+        break;    
+    default:
+        return "UNKNOWN";
+        break;
+    }
+}
 char*
 get_resource_name(RESOURCES res)
 {
@@ -176,6 +198,9 @@ get_resource_name(RESOURCES res)
         case RESOURCE_HOST_TYPE:
             return "HOST_TYPE";
             break;
+        case RESOURCE_CUSTOM:
+            return "CUSTOM_RESOURCE";
+            break;
         default:
             return "INVALID_RESOURCE";
             break;
@@ -192,6 +217,9 @@ get_formula_name(FORMULAS formula)
         break;
         case SCRIPT:
            return "SCRIPT";
+        break;
+        case CUSTOM:
+           return "CUSTOM";
         break;
         default:
             return "INVALID_FORMULA";
@@ -258,6 +286,24 @@ free_config_map(PGConfigMap* config)
     }
 
 }
+
+
+static void
+print_config_map_entry_report(PGConfigMapEntry *entry, SystemInfo *sys_info)
+{
+    if (!entry)
+    {
+        printf("LOG: Config Map entry is NULL\n");
+        return;
+    }
+
+    printf("*** Processed parameter \"%s\": ",entry->param?entry->param:"NULL");
+    printf("Using RESOURCE:%s: ",get_resource_name(entry->resource));
+    printf("with FORMULA:%s: ",get_formula_name(entry->formula));
+    printf("for [%s] workload\n",get_workload_type(sys_info->workload_type));
+    printf("RESULT: %s\n",entry->message);
+}
+
 /* debug function */
 void
 print_config_map_entry(PGConfigMapEntry *entry)
@@ -270,10 +316,10 @@ print_config_map_entry(PGConfigMapEntry *entry)
     printf("%s: ",entry->param?entry->param:"NULL");
     printf("%s: ",get_resource_name(entry->resource));
     printf("%s: ",get_formula_name(entry->formula));
-    printf("OLTP:%ld OLAP:%ld MIXED:%ld\n",entry->oltp_value,entry->olap_value,entry->mixed_value);
+    printf("OLTP:%f OLAP:%f MIXED:%f\n",entry->oltp_value,entry->olap_value,entry->mixed_value);
 
     if (entry->status == ENTRY_PROCESSED_SUCCESS)
-        printf("\t optimised_value=%ld",entry->optimised_value);
+        printf("\t optimised_value=%f",entry->optimised_value);
     else if (entry->status == ENTRY_PROCESSED_ERROR)
         printf("\t *processing_error*");
     if (entry->conf_ref)
@@ -282,7 +328,7 @@ print_config_map_entry(PGConfigMapEntry *entry)
 }
 
 void
-print_config_map(PGConfigMap* config)
+print_config_map(PGConfigMap* config, SystemInfo *sys_info, bool report)
 {
     int i;
     PGConfigMapEntry *entry;
@@ -295,8 +341,40 @@ print_config_map(PGConfigMap* config)
     while(entry)
     {
         printf("[%d]:\t",i++);
-        print_config_map_entry(entry);
+        if (report)
+            print_config_map_entry_report(entry,sys_info);
+        else
+            print_config_map_entry(entry);
         entry = entry->next;
     }
     printf("\n\n");
+}
+
+void
+create_postgresql_conf(const char *output_file_path,PGConfigMap* config, SystemInfo *sys_info)
+{
+    FILE *fp;
+    PGConfigMapEntry *entry;
+    if (!config)
+    {
+        printf("LOG: Config Map is NULL\n");
+        return;
+    }
+    entry = config->list;
+    fp = fopen(output_file_path, "w+");
+
+    while(entry)
+    {
+        if (entry->status == ENTRY_PROCESSED_SUCCESS)
+        {
+            fprintf(fp, "%s = ", entry->param);
+            if (entry->resource == RESOURCE_MEMORY || entry->resource == RESOURCE_CPU)
+                fprintf(fp, "%lld\n",(long long) entry->optimised_value);
+            else
+                fprintf(fp, "%f\n", entry->optimised_value);
+        }
+        entry = entry->next;
+    }
+    fclose(fp);
+    printf("\nLOG: configuration file \"%s\"generated\n",output_file_path);
 }

@@ -30,7 +30,12 @@ void free_config_map(PGConfigMap *config);
 char *get_resource_name(RESOURCES res);
 char *get_formula_name(FORMULAS formula);
 
-/* DEBUG functions */
-void print_config_map(PGConfigMap *config);
-void print_config_map_entry(PGConfigMapEntry *entry);
+RESOURCES identify_resource(char* token);
+FORMULAS identify_formula(char* token);
+
+int load_json_config_map(PGConfigMap* config, const char *file_path);
+
+void print_config_map(PGConfigMap* config, SystemInfo *sys_info, bool report);
+void create_postgresql_conf(const char *output_file_path,PGConfigMap* config, SystemInfo *sys_info);
+
 #endif // __PG_CONFIG_MAP_H__

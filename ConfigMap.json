@@ -1,0 +1,64 @@
+{
+    "version" : "v1.0",
+    "engine" : "percona pg auto tune",
+    "config_map" : [
+        {
+            "parameter"     : "shared_buffers",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 40.0,
+            "OLTP_Factor"   : 60.0,
+            "MIXED_Factor"  : 50.0,
+            "Trigger"       : 0.0
+        },
+        {
+            "parameter"     : "work_mem",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 10.0,
+            "OLTP_Factor"   : 10.0,
+            "MIXED_Factor"  : 5.0
+        },
+        {
+            "parameter"     : "max_worker_processes",
+            "resource"      : "Cpu",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 100.0,
+            "OLTP_Factor"   : 100.0,
+            "MIXED_Factor"  : 100.0
+        },
+        {
+            "parameter"     : "max_parallel_workers_per_gather",
+            "resource"      : "Cpu",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 20.0,
+            "OLTP_Factor"   : 20.0,
+            "MIXED_Factor"  : 20.0
+        },
+        {
+            "parameter"     : "seq_page_cost",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 1.1,
+            "OLTP_Factor"   : 1.0,
+            "MIXED_Factor"  : 0.9
+        },
+        {
+            "parameter"     : "parallel_tuple_cost",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 0.05,
+            "OLTP_Factor"   : 0.1,
+            "MIXED_Factor"  : 0.15
+        },
+        {
+            "parameter"     : "autovacuum_vacuum_scale_factor",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 0.3,
+            "OLTP_Factor"   : 0.4,
+            "MIXED_Factor"  : 0.5
+        }
+
+    ]
+}

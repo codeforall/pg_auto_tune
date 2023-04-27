@@ -39,7 +39,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS)) -I./$(LIB_DDIR)/iniparser/src
 
 CFLAGS    := -fPIC -Wall -ggdb3 $(INC_FLAGS) -MMD -MP
 LDFLAGS   := -shared
-LIBS      := -L./$(BUILD_LIB) 
+LIBS      := -L./$(BUILD_LIB)  -lm
 
 $(BUILD_DIR)/$(TARGET_EXEC): mkdir $(OBJS)
 	$(CC) $(OBJS) -o $@ $(LIBS)	
