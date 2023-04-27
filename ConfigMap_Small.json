@@ -1,23 +1,25 @@
 {
     "version" : "v1.0",
     "engine" : "percona pg auto tune",
+    "description" : "Small machines with less than 4 CPU and 16GB RAM",
+    "workload" : "oltp",
     "config_map" : [
         {
             "parameter"     : "shared_buffers",
             "resource"      : "Memory",
             "Formula"       : "Percentage",
-            "OLAP_Factor"   : 40.0,
-            "OLTP_Factor"   : 60.0,
-            "MIXED_Factor"  : 50.0,
+            "OLAP_Factor"   : 25.0,
+            "OLTP_Factor"   : 20.0,
+            "MIXED_Factor"  : 20.0,
             "Trigger"       : 0.0
         },
         {
             "parameter"     : "work_mem",
             "resource"      : "Memory",
             "Formula"       : "Percentage",
-            "OLAP_Factor"   : 10.0,
-            "OLTP_Factor"   : 10.0,
-            "MIXED_Factor"  : 5.0
+            "OLAP_Factor"   : 0.02,
+            "OLTP_Factor"   : 0.01,
+            "MIXED_Factor"  : 0.01
         },
         {
             "parameter"     : "max_worker_processes",
