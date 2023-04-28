@@ -1,0 +1,161 @@
+{
+    "name" : "Test Hackathon 2023 Profile",
+    "version" : "v1.0",
+    "engine" : "percona PostgreSQL Auto Tuning Engine V8",
+    "author" : "Hackathon team 3",
+    "description": "This profile is for small machines upto 4CPU and 8GB RAM",
+    "min_memory" : 4294967296,
+    "min_cpu" : 2,
+    "max_memory" : 8589934592,
+    "max_cpu" : 4,
+    "date_created" : "April 27, 2023",
+
+    "config_map" : [
+        {
+            "parameter"     : "shared_buffers",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 25.0,
+            "OLTP_Factor"   : 20.0,
+            "MIXED_Factor"  : 20.0,
+            "Trigger"       : 0.0
+        },
+        {
+            "parameter"     : "effective_cache_size",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 70.0,
+            "OLTP_Factor"   : 70.0,
+            "MIXED_Factor"  : 70.0,
+            "Trigger"       : 0.0
+        },
+        {
+            "parameter"     : "work_mem",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 0.1,
+            "OLTP_Factor"   : 0.05,
+            "MIXED_Factor"  : 0.06
+        },
+        {
+            "parameter"     : "maintenance_work_mem",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 4,
+            "OLTP_Factor"   : 6,
+            "MIXED_Factor"  : 5
+        },
+        {
+            "parameter"     : "max_worker_processes",
+            "resource"      : "Cpu",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 50.0,
+            "OLTP_Factor"   : 10.0,
+            "MIXED_Factor"  : 20.0
+        },
+        {
+            "parameter"     : "max_parallel_workers",
+            "resource"      : "Cpu",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 50.0,
+            "OLTP_Factor"   : 10.0,
+            "MIXED_Factor"  : 20.0
+        },
+        {
+            "parameter"     : "max_parallel_workers_per_gather",
+            "resource"      : "Cpu",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 10.0,
+            "OLTP_Factor"   : 0.0,
+            "MIXED_Factor"  : 5.0
+        },
+        {
+            "parameter"     : "max_parallel_maintenance_workers",
+            "resource"      : "Cpu",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 10.0,
+            "OLTP_Factor"   : 0.0,
+            "MIXED_Factor"  : 5.0
+        },
+        {
+            "parameter"     : "seq_page_cost",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 1.1,
+            "OLTP_Factor"   : 1.0,
+            "MIXED_Factor"  : 1.1
+        },
+        {
+            "parameter"     : "random_page_cost",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 1.5,
+            "OLTP_Factor"   : 1.1,
+            "MIXED_Factor"  : 1.1
+        },
+        {
+            "parameter"     : "parallel_tuple_cost",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 0.05,
+            "OLTP_Factor"   : 0.1,
+            "MIXED_Factor"  : 0.1
+        },
+        {
+            "parameter"     : "autovacuum_vacuum_scale_factor",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 0.4,
+            "OLTP_Factor"   : 0.2,
+            "MIXED_Factor"  : 0.2
+        },
+        {
+            "parameter"     : "checkpoint_completion_target",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 0.9,
+            "OLTP_Factor"   : 0.9,
+            "MIXED_Factor"  : 0.9
+        },
+        {
+            "parameter"     : "wal_buffers",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 2048,
+            "OLTP_Factor"   : 2048,
+            "MIXED_Factor"  : 2048
+        },
+        {
+            "parameter"     : "default_statistics_target",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 200,
+            "OLTP_Factor"   : 100,
+            "MIXED_Factor"  : 150
+        },
+        {
+            "parameter"     : "effective_io_concurrency",
+            "resource"      : "custom",
+            "Formula"       : "custom",
+            "OLAP_Factor"   : 20,
+            "OLTP_Factor"   : 10,
+            "MIXED_Factor"  : 15
+        },
+        {
+            "parameter"     : "min_wal_size",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 50,
+            "OLTP_Factor"   : 50,
+            "MIXED_Factor"  : 50
+        },
+        {
+            "parameter"     : "max_wal_size",
+            "resource"      : "Memory",
+            "Formula"       : "Percentage",
+            "OLAP_Factor"   : 100,
+            "OLTP_Factor"   : 100,
+            "MIXED_Factor"  : 100
+        }
+    ]
+}
