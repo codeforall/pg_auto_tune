@@ -11,13 +11,29 @@
     "date_created": "April 27, 2023",
     "config_map": [
         {
+            "parameter": "min_wal_size",
+            "resource": "custom",
+            "Formula": "custom",
+            "OLAP_Factor": "5GB",
+            "OLTP_Factor": "7GB",
+            "MIXED_Factor": "10GB"
+        },
+        {
+            "parameter": "max_wal_size",
+            "resource": "custom",
+            "Formula": "custom",
+            "OLAP_Factor": 10.150,
+            "OLTP_Factor": 10.975,
+            "MIXED_Factor": 15
+        },
+        {
             "parameter": "shared_buffers",
             "resource": "Memory",
             "Formula": "Percentage",
-            "OLAP_Factor": 25.0,
-            "OLTP_Factor": 30.0,
-            "MIXED_Factor": 50.0,
-            "Trigger": 0.0
+            "OLAP_Factor": 25,
+            "OLTP_Factor": 30,
+            "MIXED_Factor": 50,
+            "Trigger": 0
         },
         {
             "parameter": "work_mem",
@@ -44,36 +60,20 @@
             "MIXED_Factor": 0.20
         },
         {
-            "parameter": "max_wal_size",
-            "resource": "custom",
-            "Formula": "custom",
-            "OLAP_Factor": 10,
-            "OLTP_Factor": 10,
-            "MIXED_Factor": 15
-        },
-        {
-            "parameter": "min_wal_size",
-            "resource": "custom",
-            "Formula": "custom",
-            "OLAP_Factor": 5,
-            "OLTP_Factor": 5,
-            "MIXED_Factor": 5
-        },
-        {
             "parameter": "max_worker_processes",
             "resource": "cpu",
             "Formula": "Percentage",
-            "OLAP_Factor": 100.0,
-            "OLTP_Factor": 100.0,
-            "MIXED_Factor": 100.0
+            "OLAP_Factor": 100,
+            "OLTP_Factor": 100,
+            "MIXED_Factor": 100
         },
         {
             "parameter": "max_parallel_workers_per_gather",
             "resource": "Cpu",
             "Formula": "Percentage",
-            "OLAP_Factor": 20.0,
-            "OLTP_Factor": 20.0,
-            "MIXED_Factor": 20.0
+            "OLAP_Factor": 20,
+            "OLTP_Factor": 20,
+            "MIXED_Factor": 20
         },
         {
             "parameter": "seq_page_cost",
@@ -95,9 +95,9 @@
             "parameter": "Idle_in_transaction_session_timeout",
             "resource": "custom",
             "Formula": "custom",
-            "OLAP_Factor": 1.0,
-            "OLTP_Factor": 1.0,
-            "MIXED_Factor": 1.0
+            "OLAP_Factor": 1,
+            "OLTP_Factor": 1,
+            "MIXED_Factor": 1
         },
         {
             "parameter": "archive_mode",
@@ -111,9 +111,9 @@
             "parameter": "random_page_cost",
             "resource": "custom",
             "Formula": "custom",
-            "OLAP_Factor": 2.0,
-            "OLTP_Factor": 1.0,
-            "MIXED_Factor": 1.0
+            "OLAP_Factor": 2,
+            "OLTP_Factor": 1,
+            "MIXED_Factor": 1
         },
         {
             "parameter": "cpu_tuple_cost",
@@ -139,6 +139,5 @@
             "OLTP_Factor": 0.4,
             "MIXED_Factor": 0.5
         }
-
     ]
 }

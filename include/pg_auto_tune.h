@@ -100,9 +100,19 @@ struct pg_config_map_entry
     char *param;
     RESOURCES   resource;
     FORMULAS formula;
-    double    oltp_value;
-    double    olap_value;
-    double    mixed_value;
+    PARAM_TYPE type;
+    char *value;
+    // union 
+    // {
+    //     char *char_val;
+    //     uint64_t int_val;
+    //     double dbl_val;
+    // };
+    
+    // double    oltp_value;
+    // double    olap_value;
+    // double    mixed_value;
+    
     double    trigger_value;
     ENTRY_STATUS    status;
 
