@@ -1194,13 +1194,13 @@ json_get_string_value_for_key(json_value *source, const char *key)
       char *int_val = NULL;
       int num_len = (int)((ceil(log10(jNode->u.integer)) + 1) * sizeof(char));
       int_val = calloc(num_len, sizeof *int_val);
-      sprintf(int_val, "%d", jNode->u.integer);
+      sprintf(int_val, "%ld", jNode->u.integer);
       return int_val;
    }
    else if (jNode->type == json_double)
    {
       char *dbl_val = NULL;
-      dbl_val = calloc(__SIZEOF_DOUBLE__, sizeof *dbl_val);
+      dbl_val = calloc(512, sizeof *dbl_val);
       sprintf(dbl_val, "%f", jNode->u.dbl);
       return dbl_val;
    }

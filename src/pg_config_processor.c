@@ -137,18 +137,18 @@ custom_processor(PGConfigMapEntry *map_entry, SystemInfo *system_info)
 
     /* */
     // double factor_value;
-    double ref_value = INVALID_DOUBLE_VAL;
+    // double ref_value = INVALID_DOUBLE_VAL;
 
     if (!map_entry)
         return -1;
 
-    if (map_entry->conf_ref)
-    {
-        if (map_entry->conf_ref->type == PTYPE_INT)
-            ref_value = (double)map_entry->conf_ref->int_val;
-        else if (map_entry->conf_ref->type == PTYPE_FLOAT)
-            ref_value = (double)map_entry->conf_ref->dec_val;
-    }
+    // if (map_entry->conf_ref)
+    // {
+    //     if (map_entry->conf_ref->type == PTYPE_INT)
+    //         ref_value = (double)map_entry->conf_ref->int_val;
+    //     else if (map_entry->conf_ref->type == PTYPE_FLOAT)
+    //         ref_value = (double)map_entry->conf_ref->dec_val;
+    // }
 
     // factor_value = strtod(map_entry->value, NULL);
     /* */
