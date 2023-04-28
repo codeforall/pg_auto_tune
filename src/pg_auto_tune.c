@@ -223,7 +223,7 @@ int main(int argc, char **argv)
     pg_config = PGConfig_parse(pgconf_file_path);
 
     /* Load the map file */
-    if (load_json_config_map(&config_map, &map_profile, map_file ? map_file : map_file_name) < 0)
+    if (load_json_config_map(&config_map, &map_profile, &system_info, map_file ? map_file : map_file_name) < 0)
     {
         fprintf(stderr, "%s: failed to load configuration map file\n", progname);
         return -1;
