@@ -100,9 +100,19 @@ struct pg_config_map_entry
     char *param;
     RESOURCES   resource;
     FORMULAS formula;
-    double    oltp_value;
-    double    olap_value;
-    double    mixed_value;
+    PARAM_TYPE type;
+    char *value;
+    // union 
+    // {
+    //     char *char_val;
+    //     uint64_t int_val;
+    //     double dbl_val;
+    // };
+    
+    // double    oltp_value;
+    // double    olap_value;
+    // double    mixed_value;
+    
     double    trigger_value;
     ENTRY_STATUS    status;
 
@@ -115,6 +125,20 @@ struct pg_config_map_entry
     /* Next item reference */
     PGConfigMapEntry *next;
 };
+
+typedef struct pg_map_profile_details
+{
+    long    min_memory;
+    long    min_cpu;
+    long    max_memory;
+    long    max_cpu;
+    char*   name;
+    char*   author;
+    char*   description;
+    char*   version;
+    char*   date_created;
+    char*   engine;
+}PGMapProfileDetails;
 
 typedef struct pg_config_map
 {

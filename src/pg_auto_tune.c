@@ -31,6 +31,7 @@
 
 /* globalse */
 int verbose_output = 0;
+bool force_invalid_profile = false;
 char *data_dir = NULL;
 char *map_file = NULL;
 char *output_file_path = NULL;
@@ -47,16 +48,18 @@ static long long get_ram_size(void);
 static int get_CPU_count(void);
 static double get_disk_speed(const char *filePath);
 static void usage(void);
-
+static void validate_map_profile(PGMapProfileDetails* profile, SystemInfo *system_info, bool force);
+static void validate_system_inof(SystemInfo *system_info);
 int main(int argc, char **argv)
 {
     int ch;
     int optindex;
     char test_file_path[MAX_FILE_PATH_SIZE];
     char pgconf_file_path[MAX_FILE_PATH_SIZE];
-    const char *allowed_options = "h:n:d:w:D:m:o:vV";
+    const char *allowed_options = "h:n:d:w:D:m:o:vVF";
     PGConfig *pg_config;
     PGConfigMap config_map;
+    PGMapProfileDetails map_profile;
 
     SystemInfo system_info = {
         .total_ram = -1,
@@ -69,6 +72,7 @@ int main(int argc, char **argv)
     static struct option long_options[] = {
         {"help", no_argument, NULL, '?'},
         {"version", no_argument, NULL, 'V'},
+        {"force-profile", no_argument, NULL, 'F'},
         {"verbose", no_argument, NULL, 'v'},
         {"host-type", required_argument, NULL, 'h'},
         {"node-type", required_argument, NULL, 'n'},
@@ -98,11 +102,11 @@ int main(int argc, char **argv)
         switch (ch)
         {
         case 'h': /*Host type*/
-            if (strcmp(optarg, "p") == 0 || strcmp(optarg, "pod") == 0)
+            if (strcmp(optarg, "p") == 0 || strcasecmp(optarg, "pod") == 0)
                 system_info.host_type = POD;
-            else if (strcmp(optarg, "s") == 0 || strcmp(optarg, "standard") == 0)
+            else if (strcmp(optarg, "s") == 0 || strcasecmp(optarg, "standard") == 0)
                 system_info.host_type = STANDARD;
-            else if (strcmp(optarg, "c") == 0 || strcmp(optarg, "cloud") == 0)
+            else if (strcmp(optarg, "c") == 0 || strcasecmp(optarg, "cloud") == 0)
                 system_info.host_type = CLOUD;
             else
             {
@@ -112,9 +116,9 @@ int main(int argc, char **argv)
             break;
 
         case 'n': /*Node type*/
-            if (strcmp(optarg, "p") == 0 || strcmp(optarg, "primary") == 0)
+            if (strcmp(optarg, "p") == 0 || strcasecmp(optarg, "primary") == 0)
                 system_info.node_type = PRIMARY;
-            else if (strcmp(optarg, "s") == 0 || strcmp(optarg, "standby") == 0)
+            else if (strcmp(optarg, "s") == 0 || strcasecmp(optarg, "standby") == 0)
                 system_info.node_type = STANDBY;
             else
             {
@@ -124,11 +128,11 @@ int main(int argc, char **argv)
             break;
 
         case 'd': /*Disk type*/
-            if (strcmp(optarg, "m") == 0 || strcmp(optarg, "magnetic") == 0)
+            if (strcmp(optarg, "m") == 0 || strcasecmp(optarg, "magnetic") == 0)
                 system_info.disk_type = MAGNETIC;
-            else if (strcmp(optarg, "s") == 0 || strcmp(optarg, "ssd") == 0)
+            else if (strcmp(optarg, "s") == 0 || strcasecmp(optarg, "ssd") == 0)
                 system_info.disk_type = SSD;
-            else if (strcmp(optarg, "n") == 0 || strcmp(optarg, "network") == 0)
+            else if (strcmp(optarg, "n") == 0 || strcasecmp(optarg, "network") == 0)
                 system_info.disk_type = NETWORK;
             else
             {
@@ -138,11 +142,11 @@ int main(int argc, char **argv)
             break;
 
         case 'w': /*Workload */
-            if (strcmp(optarg, "l") == 0 || strcmp(optarg, "olap") == 0)
+            if (strcmp(optarg, "l") == 0 || strcasecmp(optarg, "olap") == 0)
                 system_info.workload_type = OLAP;
-            else if (strcmp(optarg, "t") == 0 || strcmp(optarg, "oltp") == 0)
+            else if (strcmp(optarg, "t") == 0 || strcasecmp(optarg, "oltp") == 0)
                 system_info.workload_type = OLTP;
-            else if (strcmp(optarg, "m") == 0 || strcmp(optarg, "mixed") == 0)
+            else if (strcmp(optarg, "m") == 0 || strcasecmp(optarg, "mixed") == 0)
                 system_info.workload_type = MIXED;
             else
             {
@@ -167,6 +171,9 @@ int main(int argc, char **argv)
             data_dir = strdup(optarg);
             break;
 
+        case 'F':
+            force_invalid_profile = true;
+            break;
         case '?':
         default:
 
@@ -211,11 +218,19 @@ int main(int argc, char **argv)
 
     snprintf(pgconf_file_path, MAX_FILE_PATH_SIZE, "%s/%s", data_dir, "postgresql.conf");
 
+    validate_system_inof(&system_info);
     /* Load configuration parameters from postgresql.conf */
     pg_config = PGConfig_parse(pgconf_file_path);
 
     /* Load the map file */
-    load_json_config_map(&config_map, map_file ? map_file : map_file_name);
+    if (load_json_config_map(&config_map, &map_profile, &system_info, map_file ? map_file : map_file_name) < 0)
+    {
+        fprintf(stderr, "%s: failed to load configuration map file\n", progname);
+        return -1;
+    }
+
+    validate_map_profile(&map_profile, &system_info, force_invalid_profile);
+
     if (verbose_output)
         print_config_map(&config_map, &system_info, false);
 
@@ -230,6 +245,126 @@ int main(int argc, char **argv)
     return 0;
 }
 
+static void
+validate_system_inof(SystemInfo *system_info)
+{
+    if (verbose_output)
+    {
+        printf("\n************** System Info **************\n");
+        printf("WorkLoad type   : %s\n",get_workload_type(system_info->workload_type));
+        printf("Installed RAM   : %lld\n",system_info->total_ram);
+        printf("Installed CPU   : %ld\n",system_info->cpu_count);
+        printf("Disk read speed : %.2f MB/s\n",system_info->disk_speed);
+        printf("**********************************************\n");
+    }
+    if (system_info->total_ram <= 0)
+    {
+        fprintf(stderr, "ERROR: Failed to get installed RAM size\n");
+        exit(1);
+    }
+    if (system_info->cpu_count <= 0)
+    {
+        fprintf(stderr, "ERROR: Failed to get installed CPU count from system\n");
+        exit(1);
+    }
+    if (system_info->disk_speed <= 0)
+    {
+        fprintf(stderr, "WARNING: Failed to get installed CPU count from system\n");
+    }
+}
+
+static void
+validate_map_profile(PGMapProfileDetails* profile, SystemInfo *system_info, bool force)
+{
+    if (verbose_output)
+    {
+        printf("\n************** Map File Details **************\n");
+        printf("Profile Name             : %s\n",profile->name);
+        printf("Description              : %s\n",profile->description);
+        printf("Profile Version          : %s\n",profile->version);
+        printf("Engine                   : %s\n",profile->engine);
+        printf("Created on               : %s\n",profile->date_created);
+
+        if (profile->max_cpu < 0)
+            printf("Valid for Max CPU(s)     : %s\n","*");
+        else
+            printf("Valid for Max CPU(s)     : %ld\n",profile->max_cpu);
+
+        if (profile->min_cpu < 0)
+            printf("Valid for Min CPU(s)     : %s\n","*");
+        else
+            printf("Valid for Min CPU(s)     : %ld\n",profile->min_cpu);
+
+        if (profile->max_memory < 0)
+            printf("Valid for Max Memory of  : %s Bytes\n","*");
+        else
+            printf("Valid for Max Memory of  : %ldBytes\n",profile->max_memory);
+
+        if (profile->min_memory < 0)
+            printf("Valid for Min Memory of  : %s Bytes\n","*");
+        else
+            printf("Valid for Min Memory of  : %ldBytes\n",profile->min_memory);
+
+        printf("**********************************************\n");
+    }
+    /* Validate CPU count */
+    if (profile->max_cpu <  profile->min_cpu)
+    {
+        fprintf(stderr, "WARNING: Invalid CPU bounds for profile. max_cpu (%ld) is less than min_cpu(%ld) count\n",
+                profile->max_cpu, profile->min_cpu);
+        fprintf(stderr, "Ignoring CPU bounds ....\n");
+    }
+    else
+    {
+        if (profile->max_cpu > 0 && profile->max_cpu < system_info->cpu_count)
+        {
+            fprintf(stderr, "ERROR: Invalid CPU bounds for profile. Allowed value for max_cpu (%ld) is less than system cpu (%ld) count\n",
+                profile->max_cpu, system_info->cpu_count);
+            if (force)
+                fprintf(stderr, "Ignoring CPU bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+        if (profile->min_cpu > 0 &&profile->min_cpu > system_info->cpu_count)
+        {
+            fprintf(stderr, "ERROR: Invalid CPU bounds for profile. Allowed value for min_cpu (%ld) is greater than system cpu (%ld) count\n",
+                profile->min_cpu, system_info->cpu_count);
+            if (force)
+                fprintf(stderr, "Ignoring CPU bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+    }
+    /* Now the Memory */
+    if (profile->max_memory <  profile->min_memory)
+    {
+        fprintf(stderr, "WARNING: Invalid memory bounds for profile. max_memory (%ld) is less than min_memory(%ld) bytes\n",
+                profile->max_cpu, profile->min_memory);
+        fprintf(stderr, "Ignoring memory bounds ....\n");
+    }
+    else
+    {
+        if (profile->max_memory > 0 && profile->max_memory < system_info->total_ram)
+        {
+            fprintf(stderr, "ERROR: Invalid memory bounds for profile. Allowed value for max_memory (%ld) is less than system memory (%lld) bytes\n",
+                profile->max_memory, system_info->total_ram);
+            if (force)
+                fprintf(stderr, "Ignoring memory bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+        if (profile->min_memory > 0 && profile->min_memory > system_info->total_ram)
+        {
+            fprintf(stderr, "ERROR: Invalid memory bounds for profile. Allowed value for min_memory (%ld) is greater than system memory (%lld) bytes\n",
+                profile->min_memory, system_info->total_ram);
+            if (force)
+                fprintf(stderr, "Ignoring memory bounds because of force option ....\n");
+            else
+                exit(1);
+        }
+    }
+}
+
 static long long
 get_ram_size(void)
 {
@@ -240,9 +375,6 @@ get_ram_size(void)
         fprintf(stderr, "Failed to retrieve system information %s:\n", strerror(errno));
         return -1;
     }
-
-    if (verbose_output)
-        printf("LOG: RAM size: %ld bytes\n", info.totalram);
     return info.totalram;
 }
 
@@ -256,8 +388,6 @@ get_CPU_count(void)
         return -1;
     }
 
-    if (verbose_output)
-        printf("LOG: CPU core count: %ld\n", count);
     return count;
 }
 
@@ -289,11 +419,9 @@ get_disk_speed(const char *filePath)
     double duration = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.0;
     double speed = (double)BUFFER_SIZE / (1024.0 * 1024.0 * duration);
 
-    if (verbose_output)
-        printf("Disk speed: %.2f MB/s\n", speed);
-
     return speed;
 }
+
 
 static void
 usage(void)
@@ -316,6 +444,7 @@ usage(void)
     fprintf(stderr, "  -o, --file=file-path        output conf file path. DEFAULT:\"%s\"\n",output_conf_file);
     fprintf(stderr, "  -D, --data-dir=DIR          location of the PostgreSQL data directory\n");
 
+    fprintf(stderr, "  -F, --force-profile         Force apply invalid profiles. DEFAULT=[FALSE]\n");
     fprintf(stderr, "  -v, --verbose               output verbose messages\n");
     fprintf(stderr, "  -V, --version               output version information and exit\n");
     fprintf(stderr, "  -?, --help                  print this help\n\n");

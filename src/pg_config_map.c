@@ -85,17 +85,17 @@ load_config_map(PGConfigMap* config, char *map_file)
                     entry->formula = identify_formula(token);
                 break;
 
-                case 3:/* OLTP */
-                    entry->oltp_value = atof(token);
-                break;
+                // case 3:/* OLTP */
+                //     entry->oltp_value = atof(token);
+                // break;
 
-                case 4:/* OLAP */
-                    entry->olap_value = atof(token);
-                break;
+                // case 4:/* OLAP */
+                //     entry->olap_value = atof(token);
+                // break;
 
-                case 5:/* mixed */
-                    entry->mixed_value = atof(token);
-                break;
+                // case 5:/* mixed */
+                //     entry->mixed_value = atof(token);
+                // break;
             }
             step++;
         }
@@ -165,7 +165,7 @@ get_workload_type(WORKLOAD_TYPE wrk)
         return "OLTP";
         break;
     case OLAP:
-        return "OLTP";
+        return "OLAP";
         break;
     case MIXED:
         return "MIXED";
@@ -306,7 +306,7 @@ print_config_map_entry_report(PGConfigMapEntry *entry, SystemInfo *sys_info)
 
 /* debug function */
 void
-print_config_map_entry(PGConfigMapEntry *entry)
+print_config_map_entry(PGConfigMapEntry *entry, SystemInfo *system_info)
 {
     if (!entry)
     {
@@ -316,10 +316,19 @@ print_config_map_entry(PGConfigMapEntry *entry)
     printf("%s: ",entry->param?entry->param:"NULL");
     printf("%s: ",get_resource_name(entry->resource));
     printf("%s: ",get_formula_name(entry->formula));
-    printf("OLTP:%f OLAP:%f MIXED:%f\n",entry->oltp_value,entry->olap_value,entry->mixed_value);
+    if(system_info->workload_type == OLAP)
+        printf("OLTP: ");
+    else if(system_info->workload_type == OLAP)
+        printf("OLTP: ");
+    else if(system_info->workload_type == OLAP)
+        printf("OLTP: ");
+    else
+        printf("UNDEFINED: ");
+
+    printf("%s\n", entry->value);
 
     if (entry->status == ENTRY_PROCESSED_SUCCESS)
-        printf("\t optimised_value=%f",entry->optimised_value);
+        printf("\t optimised_value=%.2f",entry->optimised_value);
     else if (entry->status == ENTRY_PROCESSED_ERROR)
         printf("\t *processing_error*");
     if (entry->conf_ref)
@@ -342,9 +351,9 @@ print_config_map(PGConfigMap* config, SystemInfo *sys_info, bool report)
     {
         printf("[%d]:\t",i++);
         if (report)
-            print_config_map_entry_report(entry,sys_info);
+            print_config_map_entry_report(entry, sys_info);
         else
-            print_config_map_entry(entry);
+            print_config_map_entry(entry, sys_info);
         entry = entry->next;
     }
     printf("\n\n");
@@ -368,13 +377,18 @@ create_postgresql_conf(const char *output_file_path,PGConfigMap* config, SystemI
         if (entry->status == ENTRY_PROCESSED_SUCCESS)
         {
             fprintf(fp, "%s = ", entry->param);
-            if (entry->resource == RESOURCE_MEMORY || entry->resource == RESOURCE_CPU)
+            if (entry->resource == RESOURCE_MEMORY)
+                fprintf(fp, "%lldkB\n",(long long) (entry->optimised_value/1024));
+            else if (entry->resource == RESOURCE_CPU)
                 fprintf(fp, "%lld\n",(long long) entry->optimised_value);
             else
-                fprintf(fp, "%f\n", entry->optimised_value);
+                if(entry->formula == CUSTOM)
+                    fprintf(fp, "%s\n", entry->value);
+                else
+                    fprintf(fp, "%.2f\n", entry->optimised_value);
         }
         entry = entry->next;
     }
     fclose(fp);
-    printf("\nLOG: configuration file \"%s\"generated\n",output_file_path);
+    printf("\nLOG: configuration file \"%s\" generated\n",output_file_path);
 }
