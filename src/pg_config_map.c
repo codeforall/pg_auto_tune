@@ -377,7 +377,9 @@ create_postgresql_conf(const char *output_file_path,PGConfigMap* config, SystemI
         if (entry->status == ENTRY_PROCESSED_SUCCESS)
         {
             fprintf(fp, "%s = ", entry->param);
-            if (entry->resource == RESOURCE_MEMORY || entry->resource == RESOURCE_CPU)
+            if (entry->resource == RESOURCE_MEMORY)
+                fprintf(fp, "%lldKB\n",(long long) (entry->optimised_value/1024));
+            else if (entry->resource == RESOURCE_CPU)
                 fprintf(fp, "%lld\n",(long long) entry->optimised_value);
             else
                 if(entry->formula == CUSTOM)
